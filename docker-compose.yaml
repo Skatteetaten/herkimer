@@ -1,0 +1,17 @@
+version: "3.1"
+
+services:
+    db:
+        image: postgres:10
+        restart: always
+        environment:
+            POSTGRES_DB: herkimer
+            POSTGRES_USER: ${DATABASE_USER:-postgres}
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+        ports:
+            - ${DATABASE_PORT:-5432}:5432
+        volumes:
+            - db:/var/lib/postgresql/data
+
+volumes:
+    db: {}

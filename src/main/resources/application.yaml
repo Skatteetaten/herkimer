@@ -9,6 +9,11 @@ spring:
         active: local
     application:
         name: herkimer
+    datasource:
+        url: jdbc:postgresql://localhost:${DATABASE_PORT:5432}/herkimer
+        username: ${DATABASE_USER:postgres}
+        password: ${DATABASE_PASSWORD:postgres}
+        driver-class-name: org.postgresql.Driver
 
 logging:
     level:
@@ -19,12 +24,21 @@ logging:
             apache:
                 catalina: WARN
                 velocity: WARN
-
+aurora:
+    authentication:
+        enabled: true
+        token:
+            header-value-prefix: bearer
 
 ---
 spring:
     profiles: local
 
+aurora:
+    authentication:
+        enabled: false
+        token:
+            value: token
 
 logging:
     pattern:
@@ -33,3 +47,8 @@ logging:
 ---
 spring:
     profiles: openshift
+
+aurora:
+    authentication:
+        token:
+            location: /u01/secrets/app/aurora-token/token
