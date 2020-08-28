@@ -20,16 +20,16 @@ class ErrorHandler : ResponseEntityExceptionHandler() {
         logger.debug("error", e)
         val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
 
-        val errors = when (e) {
-            is NoSuchResourceException -> e.resourceIds.map { ErrorResponse(it) }
-            else -> listOf(ErrorResponse(e.message ?: ""))
+        val error = when (e) {
+            is NoSuchResourceException -> ErrorResponse(e.errorMessage)
+            else -> ErrorResponse(e.message ?: "")
         }
 
         if (httpStatus.is5xxServerError) {
             logger.error("Unexpected error while handling request", e)
         }
 
-        val response = AuroraResponse<Resource>(success = false, message = e.message ?: "", errors = errors)
+        val response = AuroraResponse<Resource>(success = false, message = e.message ?: "", errors = listOf(error))
 
         return handleExceptionInternal(e, response, headers, httpStatus, request)
     }

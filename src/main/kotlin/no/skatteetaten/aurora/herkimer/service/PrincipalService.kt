@@ -1,7 +1,6 @@
 package no.skatteetaten.aurora.herkimer.service
 
 import no.skatteetaten.aurora.herkimer.controller.DataAccessException
-import no.skatteetaten.aurora.herkimer.controller.NoSuchResourceException
 import no.skatteetaten.aurora.herkimer.dao.Principal
 import no.skatteetaten.aurora.herkimer.dao.PrincipalRepository
 import no.skatteetaten.aurora.herkimer.dao.PrincipalType
@@ -52,9 +51,11 @@ class PrincipalService(
         return principalRepository.save(adPrincipal).toApplicationDeployment()
     }
 
-    fun findApplicationDeployment(id: UUID): ApplicationDeployment =
+    fun findApplicationDeployment(id: UUID): ApplicationDeployment? =
         principalRepository.findByIdOrNull(id)?.toApplicationDeployment()
-            ?: throw NoSuchResourceException(listOf(id.toString()))
+
+    fun findAllUsers(): List<User> =
+        principalRepository.findAllPrincipalByType(PrincipalType.User.toString()).map { it.toUser() }
 
     fun findAllApplicationDeployment(): List<ApplicationDeployment> =
         principalRepository.findAllPrincipalByType(PrincipalType.ApplicationDeployment.toString())
@@ -62,25 +63,53 @@ class PrincipalService(
 
     fun deleteApplicationDeployment(id: UUID): Unit =
         principalRepository.deleteById(id)
+
+    fun createUser(id: String, name: String): User {
+        val principaluser = Principal(
+            id = UUID.randomUUID(),
+            type = PrincipalType.User,
+            name = name,
+            userId = id
+        )
+
+        return jdbcAggregateTemplate.insert(principaluser).toUser()
+    }
+
+    fun findUser(id: UUID): User? = principalRepository.findByIdOrNull(id)?.toUser()
+
+    fun updateUser(user: User): User = principalRepository.save(
+        Principal(
+            id = user.id,
+            type = PrincipalType.User,
+            name = user.name,
+            userId = user.userId
+        )
+    ).toUser()
+
+    fun deleteUser(id: UUID) = principalRepository.deleteById(id)
 }
 
-private fun Principal.toApplicationDeployment() =
-    if (this.type == PrincipalType.ApplicationDeployment) {
+private fun Principal.toApplicationDeployment(): ApplicationDeployment =
+    takeIf { it.type == PrincipalType.ApplicationDeployment }?.run {
         ApplicationDeployment(
-            id = this.id,
-            name = this.name,
-            environmentName = assertNotNull(this::environmentName),
-            cluster = assertNotNull(this::cluster),
-            businessGroup = assertNotNull(this::businessGroup),
-            applicationName = assertNotNull(this::applicationName)
-
+            id = id,
+            name = name,
+            environmentName = assertNotNull(::environmentName),
+            cluster = assertNotNull(::cluster),
+            businessGroup = assertNotNull(::businessGroup),
+            applicationName = assertNotNull(::applicationName)
         )
-    } else {
-        throw DataAccessException("Principal with id=${this.id} is not ApplicationDeployment")
-    }
+    } ?: throw DataAccessException("Principal with id=${this.id} is not ApplicationDeployment")
+
+private fun Principal.toUser(): User =
+    takeUnless { it.type != PrincipalType.User }?.run {
+        User(
+            id = id,
+            userId = assertNotNull(::userId),
+            name = name
+        )
+    } ?: throw DataAccessException("Principal with id=${this.id} is not User")
 
 fun <T> assertNotNull(p: KProperty0<T?>): T =
     p.get()
         ?: throw DataAccessException("Data integrity error; property ${p.javaGetter?.declaringClass?.simpleName ?: "unknown"}::${p.name} cannot be null")
-
-private fun Principal.toUser() = User(this.id, assertNotNull(this::userId), this.name)

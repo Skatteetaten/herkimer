@@ -25,29 +25,28 @@ class ApplicationDeploymentController(
     private val principalService: PrincipalService
 ) {
     @GetMapping("/{id}")
-    fun findById(@PathVariable id: UUID) = AuroraResponse(
-        items = listOf(principalService.findApplicationDeployment(id).toResource())
-    )
+    fun findById(@PathVariable id: UUID): AuroraResponse<ApplicationDeploymentResource> =
+        principalService.findApplicationDeployment(id)?.toResource()?.okResponse()
+            ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
 
     @GetMapping
-    fun findAll() = AuroraResponse(items = principalService.findAllApplicationDeployment().map { it.toResource() })
+    fun findAll() =
+        principalService.findAllApplicationDeployment()
+            .toResources()
+            .okResponse()
 
     @PostMapping
     fun create(@RequestBody payload: ApplicationDeploymentPayload) =
-        AuroraResponse(
-            items = listOf(
-                payload.run {
-
-                    principalService.createApplicationDeployment(
-                        name,
-                        environmentName,
-                        cluster,
-                        businessGroup,
-                        applicationName
-                    )
-                }.toResource()
-            )
-        )
+        payload.run {
+            principalService.createApplicationDeployment(
+                name,
+                environmentName,
+                cluster,
+                businessGroup,
+                applicationName
+            ).toResource()
+                .okResponse()
+        }
 
     @PutMapping("/{id}")
     fun update(
@@ -55,21 +54,19 @@ class ApplicationDeploymentController(
         @RequestBody payload: ApplicationDeploymentPayload
     ): AuroraResponse<ApplicationDeploymentResource> {
         val existingAd = principalService.findApplicationDeployment(id)
-        return AuroraResponse(
-            items = listOf(
-                payload.run {
-                    principalService.updateApplicationDeployment(
-                        existingAd.copy(
-                            name = name,
-                            applicationName = applicationName,
-                            businessGroup = businessGroup,
-                            cluster = cluster,
-                            environmentName = environmentName
-                        )
-                    )
-                }.toResource()
-            )
-        )
+            ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
+        return payload.run {
+            principalService.updateApplicationDeployment(
+                existingAd.copy(
+                    name = name,
+                    applicationName = applicationName,
+                    businessGroup = businessGroup,
+                    cluster = cluster,
+                    environmentName = environmentName
+                )
+            ).toResource()
+                .okResponse()
+        }
     }
 
     @DeleteMapping("/{id}")

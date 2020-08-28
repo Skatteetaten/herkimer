@@ -3,11 +3,12 @@ package no.skatteetaten.aurora.herkimer.service
 import java.util.UUID
 
 interface PrincipalBase {
+    val id: UUID
     val name: String
 }
 
 data class ApplicationDeployment(
-    val id: UUID,
+    override val id: UUID,
     override val name: String,
     val environmentName: String,
     val cluster: String,
@@ -16,7 +17,7 @@ data class ApplicationDeployment(
 ) : PrincipalBase
 
 data class User(
-    val id: UUID? = null,
-    val userId: String,
-    override val name: String
+    override val id: UUID,
+    override val name: String,
+    val userId: String
 ) : PrincipalBase
