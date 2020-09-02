@@ -3,6 +3,7 @@ package no.skatteetaten.aurora.herkimer.controller
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import no.skatteetaten.aurora.herkimer.configureDefaults
 import no.skatteetaten.aurora.mockmvc.extensions.MockMvcData
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
@@ -32,12 +33,15 @@ class ApplicationDeploymentControllerTest {
 
     @Test
     fun `Create ApplicationDeployment when body has ApplicationDeployment`() {
-        createApplicationDeployment {
-            statusIsOk()
-                .responseJsonPath("$.count").equalsValue(1)
-                .responseJsonPath("$.success").isTrue()
-                .responseJsonPath("$.items[0].id").isNotEmpty()
-                .responseJsonPath("$.items[0].name").equalsValue("name")
+        mockLocalDateTimeToNow { expectedTime ->
+            createApplicationDeployment {
+                statusIsOk()
+                    .responseJsonPath("$.count").equalsValue(1)
+                    .responseJsonPath("$.success").isTrue()
+                    .responseJsonPath("$.items[0].id").isNotEmpty()
+                    .responseJsonPath("$.items[0].name").equalsValue("name")
+                    .validateAuditing(expectedTime)
+            }
         }
     }
 
@@ -118,9 +122,10 @@ class ApplicationDeploymentControllerTest {
     }
 
     private fun createApplicationDeploymentAndReturnId() = jacksonObjectMapper()
+        .configureDefaults()
         .readValue<AuroraResponse<ApplicationDeploymentResource>>(createApplicationDeployment().response.contentAsString)
         .items
-        .first()
+        .single()
         .id
 
     private fun createApplicationDeployment(

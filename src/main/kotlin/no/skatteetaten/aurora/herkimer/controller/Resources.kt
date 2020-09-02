@@ -2,6 +2,7 @@ package no.skatteetaten.aurora.herkimer.controller
 
 import no.skatteetaten.aurora.herkimer.service.ApplicationDeployment
 import no.skatteetaten.aurora.herkimer.service.User
+import java.time.LocalDateTime
 
 data class AuroraResponse<T : Resource>(
     val success: Boolean = true,
@@ -20,17 +21,24 @@ data class ApplicationDeploymentResource(
     val environmentName: String,
     val cluster: String,
     val businessGroup: String,
-    val applicationName: String
+    val applicationName: String,
+    val createdDate: LocalDateTime,
+    val modifiedDate: LocalDateTime,
+    val createdBy: String,
+    val modifiedBy: String
 ) : Resource()
 
 fun ApplicationDeployment.toResource() =
-    ApplicationDeploymentResource(
-        id = this.id.toString(),
-        name = this.name,
-        environmentName = this.environmentName,
-        cluster = this.cluster,
-        businessGroup = this.businessGroup,
-        applicationName = this.applicationName
+    ApplicationDeploymentResource(id = id.toString(),
+        name = name,
+        environmentName = environmentName,
+        cluster = cluster,
+        businessGroup = businessGroup,
+        applicationName = applicationName,
+        modifiedDate = modifiedDate,
+        modifiedBy = modifiedBy,
+        createdDate = createdDate,
+        createdBy = createdBy
     )
 
 @JvmName("applicationDeploymentsToResources")
@@ -42,14 +50,22 @@ fun List<User>.toResources() = this.map { it.toResource() }
 data class UserResource(
     val id: String,
     val userId: String,
-    val name: String
+    val name: String,
+    val createdBy: String,
+    val createdDate: LocalDateTime,
+    val modifiedBy: String,
+    val modifiedDate: LocalDateTime
 ) : Resource()
 
 fun User.toResource() =
     UserResource(
-        id = this.id.toString(),
-        userId = this.userId,
-        name = this.name
+        id = id.toString(),
+        userId = userId,
+        name = name,
+        createdBy = createdBy,
+        createdDate = createdDate,
+        modifiedBy = modifiedBy,
+        modifiedDate = modifiedDate
     )
 
 inline fun <reified T : Resource> T.okResponse() = AuroraResponse(items = listOf(this))

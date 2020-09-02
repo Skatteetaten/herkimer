@@ -3,6 +3,7 @@ package no.skatteetaten.aurora.herkimer.controller
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import no.skatteetaten.aurora.herkimer.configureDefaults
 import no.skatteetaten.aurora.mockmvc.extensions.MockMvcData
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
@@ -32,17 +33,20 @@ class UserControllerTest {
 
     @Test
     fun `Create User when payload is sent`() {
-        mockMvc.post(
-            path = Path("/user"),
-            headers = HttpHeaders().contentTypeJson(),
-            body = UserPayload("testUser", "name")
-        ) {
-            statusIsOk()
-                .responseJsonPath("$.count").equalsValue(1)
-                .responseJsonPath("$.success").isTrue()
-                .responseJsonPath("$.items[0].id").isNotEmpty()
-                .responseJsonPath("$.items[0].name").equalsValue("name")
-                .responseJsonPath("$.items[0]userId").equalsValue("testUser")
+        mockLocalDateTimeToNow { expectedTime ->
+            mockMvc.post(
+                path = Path("/user"),
+                headers = HttpHeaders().contentTypeJson(),
+                body = UserPayload("testUser", "name")
+            ) {
+                statusIsOk()
+                    .responseJsonPath("$.count").equalsValue(1)
+                    .responseJsonPath("$.success").isTrue()
+                    .responseJsonPath("$.items[0].id").isNotEmpty()
+                    .responseJsonPath("$.items[0].name").equalsValue("name")
+                    .responseJsonPath("$.items[0]userId").equalsValue("testUser")
+                    .validateAuditing(expectedTime)
+            }
         }
     }
 
@@ -92,28 +96,36 @@ class UserControllerTest {
 
     @Test
     fun `Update User When it exists Then return HTTP_OK and updated resource`() {
-        val id = createUserAndReturnId()
+        val (createdTime, id) = mockLocalDateTimeToNow {
+            createUserAndReturnId()
+        }
 
         val updatedUser = UserPayload(
             name = "herkimer",
             userId = "007"
         )
 
-        mockMvc.put(
-            path = Path("/user/{id}", id),
-            headers = HttpHeaders().contentTypeJson(),
-            body = updatedUser
-        ) {
-            statusIsOk()
-                .responseJsonPath("$.count").equalsValue(1)
-                .responseJsonPath("$.success").isTrue()
-                .responseJsonPath("$.items[0].id").equalsValue(id)
-                .responseJsonPath("$.items[0].name").equalsValue("herkimer")
-                .responseJsonPath("$.items[0].userId").equalsValue("007")
+        mockLocalDateTimeToNow { modifiedTime ->
+            mockMvc.put(
+                path = Path("/user/{id}", id),
+                headers = HttpHeaders().contentTypeJson(),
+                body = updatedUser
+            ) {
+                statusIsOk()
+                    .responseJsonPath("$.count").equalsValue(1)
+                    .responseJsonPath("$.success").isTrue()
+                    .responseJsonPath("$.items[0].id").equalsValue(id)
+                    .responseJsonPath("$.items[0].name").equalsValue("herkimer")
+                    .responseJsonPath("$.items[0].userId").equalsValue("007")
+                    .validateAuditing(
+                        createdTime = createdTime,
+                        modifiedTime = modifiedTime
+                    )
+            }
         }
     }
 
-    private fun createUserAndReturnId() = jacksonObjectMapper()
+    private fun createUserAndReturnId() = jacksonObjectMapper().configureDefaults()
         .readValue<AuroraResponse<UserResource>>(createUser().response.contentAsString)
         .items
         .single()

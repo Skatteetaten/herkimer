@@ -50,15 +50,13 @@ class UserController(private val principalService: PrincipalService) {
         val existingUser = principalService.findUser(id)
             ?: throw NoSuchResourceException("Could not find User with id=$id")
 
-        return payload.run {
-            principalService.updateUser(
-                existingUser.copy(
-                    name = name,
-                    userId = userId
-                )
-            ).toResource()
-                .okResponse()
-        }
+        return principalService.updateUser(
+            existingUser.copy(
+                name = payload.name,
+                userId = payload.userId
+            )
+        ).toResource()
+            .okResponse()
     }
 
     @DeleteMapping("/{id}")

@@ -4,7 +4,6 @@ import no.skatteetaten.aurora.herkimer.controller.DataAccessException
 import no.skatteetaten.aurora.herkimer.dao.Principal
 import no.skatteetaten.aurora.herkimer.dao.PrincipalRepository
 import no.skatteetaten.aurora.herkimer.dao.PrincipalType
-import org.springframework.data.jdbc.core.JdbcAggregateTemplate
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -13,8 +12,7 @@ import kotlin.reflect.jvm.javaGetter
 
 @Service
 class PrincipalService(
-    private val principalRepository: PrincipalRepository,
-    private val jdbcAggregateTemplate: JdbcAggregateTemplate
+    private val principalRepository: PrincipalRepository
 ) {
 
     fun createApplicationDeployment(
@@ -30,11 +28,10 @@ class PrincipalService(
             environmentName = environmentName,
             businessGroup = businessGroup,
             applicationName = applicationName,
-            cluster = cluster,
-            id = UUID.randomUUID()
+            cluster = cluster
         )
 
-        return jdbcAggregateTemplate.insert(principalAd).toApplicationDeployment()
+        return principalRepository.save(principalAd).toApplicationDeployment()
     }
 
     fun updateApplicationDeployment(ad: ApplicationDeployment): ApplicationDeployment {
@@ -45,7 +42,11 @@ class PrincipalService(
             environmentName = ad.environmentName,
             cluster = ad.cluster,
             businessGroup = ad.businessGroup,
-            applicationName = ad.applicationName
+            applicationName = ad.applicationName,
+            createdDate = ad.createdDate,
+            createdBy = ad.createdBy,
+            modifiedDate = ad.modifiedDate,
+            modifiedBy = ad.modifiedBy
         )
 
         return principalRepository.save(adPrincipal).toApplicationDeployment()
@@ -66,13 +67,12 @@ class PrincipalService(
 
     fun createUser(id: String, name: String): User {
         val principaluser = Principal(
-            id = UUID.randomUUID(),
             type = PrincipalType.User,
             name = name,
             userId = id
         )
 
-        return jdbcAggregateTemplate.insert(principaluser).toUser()
+        return principalRepository.save(principaluser).toUser()
     }
 
     fun findUser(id: UUID): User? = principalRepository.findByIdOrNull(id)?.toUser()
@@ -82,7 +82,11 @@ class PrincipalService(
             id = user.id,
             type = PrincipalType.User,
             name = user.name,
-            userId = user.userId
+            userId = user.userId,
+            modifiedBy = user.modifiedBy,
+            modifiedDate = user.modifiedDate,
+            createdBy = user.createdBy,
+            createdDate = user.createdDate
         )
     ).toUser()
 
@@ -92,21 +96,29 @@ class PrincipalService(
 private fun Principal.toApplicationDeployment(): ApplicationDeployment =
     takeIf { it.type == PrincipalType.ApplicationDeployment }?.run {
         ApplicationDeployment(
-            id = id,
+            id = assertNotNull(::id),
             name = name,
             environmentName = assertNotNull(::environmentName),
             cluster = assertNotNull(::cluster),
             businessGroup = assertNotNull(::businessGroup),
-            applicationName = assertNotNull(::applicationName)
+            applicationName = assertNotNull(::applicationName),
+            createdDate = assertNotNull(::createdDate),
+            createdBy = createdBy,
+            modifiedBy = modifiedBy,
+            modifiedDate = assertNotNull(::modifiedDate)
         )
     } ?: throw DataAccessException("Principal with id=${this.id} is not ApplicationDeployment")
 
 private fun Principal.toUser(): User =
     takeUnless { it.type != PrincipalType.User }?.run {
         User(
-            id = id,
+            id = assertNotNull(::id),
             userId = assertNotNull(::userId),
-            name = name
+            name = name,
+                createdDate = assertNotNull(::createdDate),
+            createdBy = createdBy,
+            modifiedBy = modifiedBy,
+            modifiedDate = assertNotNull(::modifiedDate)
         )
     } ?: throw DataAccessException("Principal with id=${this.id} is not User")
 
