@@ -1,6 +1,9 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import com.fasterxml.jackson.module.kotlin.convertValue
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
@@ -20,7 +23,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
-import java.util.UUID
 
 @AutoConfigureEmbeddedDatabase
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
@@ -54,7 +56,7 @@ class ResourceControllerTest {
                 body = ResourcePayload(
                     name = "minio resource",
                     kind = ResourceKind.MinioPolicy,
-                    ownerId = UUID.fromString(ownerId)
+                    ownerId = PrincipalUID.fromString(ownerId)
                 )
             ) {
                 statusIsOk()
@@ -63,6 +65,25 @@ class ResourceControllerTest {
                     .responseJsonPath("$.items[0].id").isNotEmpty()
                     .validateAuditing(expectedTime)
             }
+        }
+    }
+
+    @Test
+    fun `Create Resource when ownerId does not exist then return 404`() {
+        val ownerId = PrincipalUID.randomId()
+
+        mockMvc.post(
+            path = Path("/resource"),
+            headers = HttpHeaders().contentTypeJson(),
+            body = ResourcePayload(
+                name = "minio resource",
+                kind = ResourceKind.MinioPolicy,
+                ownerId = ownerId
+            )
+        ) {
+            status(HttpStatus.NOT_FOUND)
+                .responseJsonPath("$.errors.length()").equalsValue(1)
+                .responseJsonPath("$.errors[0].errorMessage").contains(ownerId.toString())
         }
     }
 
@@ -90,10 +111,89 @@ class ResourceControllerTest {
     }
 
     @Test
-    fun `Return list of Resource when there are one in DB`() {
-        testDataCreators.createResourceAndReturnId()
+    fun `Return Resource with claims when there are one in DB`() {
+        val ownerId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val id = testDataCreators.createResourceAndReturnId(ownerId)
+        testDataCreators.claimResource(ownerOfClaim = ownerId, resourceId = id)
 
-        mockMvc.get(Path("/resource/")) {
+        mockMvc.get(Path("/resource/{id}?includeClaims=true", id)) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.success").isTrue()
+                .responseJsonPath("$.items[0].claims.length()").equalsValue(1)
+                .responseJsonPath("$.items[0].claims[0].ownerId").equalsValue(ownerId)
+        }
+    }
+
+    @Test
+    fun `Claim resource with applicationDeployment when there are several resources in DB`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val resourceId = testDataCreators.createResourceAndReturnId(ownerId = adId)
+
+        repeat(5) {
+            testDataCreators.createResourceAndReturnId()
+        }
+        val credentials = """{"password":"superPassword"}"""
+
+        mockMvc.post(
+            path = Path("/resource/{id}/claims", resourceId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = ResourceClaimPayload(
+                ownerId = PrincipalUID.fromString(adId),
+                credentials = jacksonObjectMapper().convertValue(credentials)
+            )
+        ) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.success").isTrue()
+                .responseJsonPath("$.items[0].credentials").equalsValue(credentials)
+        }
+    }
+
+    @Test
+    fun `Claim resource when resource does not exist then return 400`() {
+        val ownerId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val nonExistingResourceId = "0"
+
+        mockMvc.post(
+            path = Path("/resource/{id}/claims", nonExistingResourceId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = ResourceClaimPayload(
+                ownerId = PrincipalUID.fromString(ownerId),
+                credentials = jacksonObjectMapper().convertValue("""{}""")
+            )
+        ) {
+            status(HttpStatus.BAD_REQUEST)
+                .responseJsonPath("$.errors.length()").equalsValue(1)
+                .responseJsonPath("$.errors[0].errorMessage").contains(nonExistingResourceId)
+        }
+    }
+
+    @Test
+    fun `Claim resource when principal does not exist then return 400`() {
+
+        val ownerId = PrincipalUID.randomId()
+        mockMvc.post(
+            path = Path("/resource/{id}/claims", "0"),
+            headers = HttpHeaders().contentTypeJson(),
+            body = ResourceClaimPayload(
+                ownerId = ownerId,
+                credentials = jacksonObjectMapper().convertValue("""{}""")
+            )
+        ) {
+            status(HttpStatus.BAD_REQUEST)
+                .responseJsonPath("$.errors.length()").equalsValue(1)
+                .responseJsonPath("$.errors[0].errorMessage").contains(ownerId.toString())
+        }
+    }
+
+    @Test
+    fun `Return claimed resources when resource and claim exists`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val resourceId = testDataCreators.createResourceAndReturnId()
+        testDataCreators.claimResource(resourceId = resourceId, ownerOfClaim = adId)
+
+        mockMvc.get(Path("/resource?claimedBy={adId}", adId)) {
             statusIsOk()
                 .responseJsonPath("$.count").equalsValue(1)
                 .responseJsonPath("$.success").isTrue()
@@ -101,11 +201,13 @@ class ResourceControllerTest {
                 .responseJsonPath("$.items.[0].ownerId").isNotEmpty()
                 .responseJsonPath("$.items[0].id").isNotEmpty()
                 .responseJsonPath("$.items[0].kind").equalsValue("MinioPolicy")
+                .responseJsonPath("$.items[0].claims.length()").equalsValue(1)
+                .responseJsonPath("$.items[0].claims[0].ownerId").equalsValue(adId)
         }
     }
 
     @Test
-    fun `Return list of Resource for a ownerId when there are several in DB`() {
+    fun `Return list of resources claimed by applicationDeployment and do not include claims when there are several in DB`() {
         val ownerId = testDataCreators.createApplicationDeploymentAndReturnId()
 
         repeat(4) {
@@ -113,15 +215,40 @@ class ResourceControllerTest {
         }
 
         repeat(2) {
-            testDataCreators.createResourceAndReturnId(ownerId)
+            testDataCreators.claimResource(ownerOfClaim = ownerId)
         }
 
-        mockMvc.get(Path("/resource?ownerId={ownerId}", ownerId)) {
+        mockMvc.get(Path("/resource?claimedBy={ownerId}&includeClaims=false", ownerId)) {
             statusIsOk()
                 .responseJsonPath("$.count").equalsValue(2)
                 .responseJsonPath("$.success").isTrue()
                 .responseJsonPath("$.items.[0].ownerId").equalsValue(ownerId)
                 .responseJsonPath("$.items.[1].ownerId").equalsValue(ownerId)
+        }
+    }
+
+    @Test
+    fun `Return list of Resource claimedBy ApplicationDeployment and include all claims when there are several in DB`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val resourceId = testDataCreators.createResourceAndReturnId(adId)
+        testDataCreators.claimResource(
+            resourceId = resourceId,
+            ownerOfClaim = adId
+        )
+
+        val otherClaim = testDataCreators.claimResource(resourceId = resourceId)
+
+        repeat(4) {
+            testDataCreators.claimResource()
+        }
+
+        mockMvc.get(Path("/resource?claimedBy={claimedBy}&onlyMyClaims=false", adId)) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.success").isTrue()
+                .responseJsonPath("$.items[0].claims.length()").equalsValue(2)
+                .responseJsonPath("$.items[0].claims[0].ownerId").equalsValue(adId)
+                .responseJsonPath("$.items[0].claims[1].ownerId").equalsValue(otherClaim.ownerId.toString())
         }
     }
 
@@ -142,7 +269,7 @@ class ResourceControllerTest {
         val updateResource = ResourcePayload(
             name = "newName",
             kind = ResourceKind.ManagedOracleSchema,
-            ownerId = UUID.fromString(newOwnerId)
+            ownerId = PrincipalUID.fromString(newOwnerId)
         )
 
         mockMvc.put(
@@ -157,6 +284,46 @@ class ResourceControllerTest {
                 .responseJsonPath("$.items[0].name").equalsValue("newName")
                 .responseJsonPath("$.items[0].kind").equalsValue("ManagedOracleSchema")
                 .responseJsonPath("$.items[0].ownerId").equalsValue(newOwnerId)
+        }
+    }
+
+    @Test
+    fun `Update Resource When it does not exist Then return 404 with error`() {
+        val nonExistingId = "0"
+        val updateResource = ResourcePayload(
+            name = "newName",
+            kind = ResourceKind.ManagedOracleSchema,
+            ownerId = PrincipalUID.randomId()
+        )
+
+        mockMvc.put(
+            path = Path("/resource/{id}", nonExistingId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = updateResource
+        ) {
+            status(HttpStatus.NOT_FOUND)
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.errors[0].errorMessage").contains(nonExistingId)
+        }
+    }
+
+    @Test
+    fun `Update Resource When owner does not exist Then return 400 with error`() {
+        val id = testDataCreators.createResourceAndReturnId()
+        val updateResource = ResourcePayload(
+            name = "newName",
+            kind = ResourceKind.ManagedOracleSchema,
+            ownerId = PrincipalUID.randomId()
+        )
+
+        mockMvc.put(
+            path = Path("/resource/{id}", id),
+            headers = HttpHeaders().contentTypeJson(),
+            body = updateResource
+        ) {
+            status(HttpStatus.BAD_REQUEST)
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.errors[0].errorMessage").contains(id)
         }
     }
 }

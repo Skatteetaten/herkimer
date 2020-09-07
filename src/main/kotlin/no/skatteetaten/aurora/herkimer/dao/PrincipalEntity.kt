@@ -6,13 +6,13 @@ import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jdbc.repository.query.Query
 import org.springframework.data.relational.core.mapping.Table
 import org.springframework.data.repository.CrudRepository
+import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Table("principal")
 data class PrincipalEntity(
     @Id
-    var id: UUID? = null,
+    var id: PrincipalUID? = null,
     val type: PrincipalType,
     val name: String,
     val environmentName: String? = null,
@@ -35,11 +35,36 @@ enum class PrincipalType {
     ApplicationDeployment, User
 }
 
-interface PrincipalRepository : CrudRepository<PrincipalEntity, UUID> {
+@Repository
+interface PrincipalRepository : CrudRepository<PrincipalEntity, PrincipalUID> {
     @Query(
         "SELECT type, name, environment_name, cluster, user_id, id, business_group, " +
             "application_name, created_date, created_by, modified_by, modified_date " +
             "FROM PRINCIPAL WHERE type LIKE :principalType"
     )
     fun findAllPrincipalByType(principalType: String): List<PrincipalEntity>
+
+    @Query(
+        "SELECT type, name, environment_name, cluster, user_id, id, business_group, " +
+            "application_name, created_date, created_by, modified_by, modified_date " +
+            "FROM PRINCIPAL WHERE name=:name AND environment_name=:environmentName AND " +
+            "cluster=:cluster AND business_group=:businessGroup AND " +
+            "application_name=:applicationName"
+    )
+    fun findApplicationDeploymentByProperties(
+        name: String,
+        environmentName: String,
+        applicationName: String,
+        cluster: String,
+        businessGroup: String
+    ): PrincipalEntity
+
+    @Query(
+        "SELECT type, name,  user_id, id, created_date, created_by, modified_by, modified_date " +
+            "FROM PRINCIPAL WHERE name=:name AND user_id=:userId"
+    )
+    fun findUserByProperties(
+        name: String,
+        userId: String
+    ): PrincipalEntity
 }

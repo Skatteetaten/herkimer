@@ -4,9 +4,11 @@ import no.skatteetaten.aurora.herkimer.controller.DataAccessException
 import no.skatteetaten.aurora.herkimer.dao.PrincipalEntity
 import no.skatteetaten.aurora.herkimer.dao.PrincipalRepository
 import no.skatteetaten.aurora.herkimer.dao.PrincipalType
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
+import org.springframework.dao.DuplicateKeyException
+import org.springframework.data.relational.core.conversion.DbActionExecutionException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
-import java.util.UUID
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.javaGetter
 
@@ -31,7 +33,19 @@ class PrincipalService(
             cluster = cluster
         )
 
-        return principalRepository.save(principalAd).toApplicationDeployment()
+        return try {
+            principalRepository.save(principalAd).toApplicationDeployment()
+        } catch (ex: DbActionExecutionException) {
+            if (ex.cause is DuplicateKeyException) {
+                principalRepository.findApplicationDeploymentByProperties(
+                    name = name,
+                    environmentName = environmentName,
+                    cluster = cluster,
+                    businessGroup = businessGroup,
+                    applicationName = applicationName
+                ).toApplicationDeployment()
+            } else throw ex
+        }
     }
 
     fun updateApplicationDeployment(ad: ApplicationDeploymentDto): ApplicationDeploymentDto {
@@ -52,9 +66,9 @@ class PrincipalService(
         return principalRepository.save(adPrincipal).toApplicationDeployment()
     }
 
-    fun findById(id: UUID): PrincipalBase? = principalRepository.findByIdOrNull(id)?.toPrincipalBase()
+    fun findById(id: PrincipalUID): PrincipalBase? = principalRepository.findByIdOrNull(id)?.toPrincipalBase()
 
-    fun findApplicationDeployment(id: UUID): ApplicationDeploymentDto? =
+    fun findApplicationDeployment(id: PrincipalUID): ApplicationDeploymentDto? =
         principalRepository.findByIdOrNull(id)?.toApplicationDeployment()
 
     fun findAllUsers(): List<UserDto> =
@@ -64,20 +78,29 @@ class PrincipalService(
         principalRepository.findAllPrincipalByType(PrincipalType.ApplicationDeployment.toString())
             .map { it.toApplicationDeployment() }
 
-    fun deleteApplicationDeployment(id: UUID): Unit =
+    fun deleteApplicationDeployment(id: PrincipalUID): Unit =
         principalRepository.deleteById(id)
 
-    fun createUser(id: String, name: String): UserDto {
+    fun createUser(userId: String, name: String): UserDto {
         val principaluser = PrincipalEntity(
             type = PrincipalType.User,
             name = name,
-            userId = id
+            userId = userId
         )
 
-        return principalRepository.save(principaluser).toUser()
+        return try {
+            principalRepository.save(principaluser)
+        } catch (ex: DbActionExecutionException) {
+            if (ex.cause is DuplicateKeyException) {
+                principalRepository.findUserByProperties(
+                    name = name,
+                    userId = userId
+                )
+            } else throw ex
+        }.toUser()
     }
 
-    fun findUser(id: UUID): UserDto? = principalRepository.findByIdOrNull(id)?.toUser()
+    fun findUser(id: PrincipalUID): UserDto? = principalRepository.findByIdOrNull(id)?.toUser()
 
     fun updateUser(userDto: UserDto): UserDto = principalRepository.save(
         PrincipalEntity(
@@ -92,7 +115,7 @@ class PrincipalService(
         )
     ).toUser()
 
-    fun deleteUser(id: UUID) = principalRepository.deleteById(id)
+    fun deleteUser(id: PrincipalUID) = principalRepository.deleteById(id)
 }
 
 private fun PrincipalEntity.toPrincipalBase() =
@@ -123,7 +146,7 @@ private fun PrincipalEntity.toUser(): UserDto =
             id = assertNotNull(::id),
             userId = assertNotNull(::userId),
             name = name,
-                createdDate = assertNotNull(::createdDate),
+            createdDate = assertNotNull(::createdDate),
             createdBy = createdBy,
             modifiedBy = modifiedBy,
             modifiedDate = assertNotNull(::modifiedDate)

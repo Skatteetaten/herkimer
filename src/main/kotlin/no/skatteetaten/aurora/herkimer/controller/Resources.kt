@@ -1,11 +1,14 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.JsonNode
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.ApplicationDeploymentDto
+import no.skatteetaten.aurora.herkimer.service.ResourceClaimDto
 import no.skatteetaten.aurora.herkimer.service.ResourceDto
 import no.skatteetaten.aurora.herkimer.service.UserDto
 import java.time.LocalDateTime
-import java.util.UUID
 
 data class AuroraResponse<T : ResourceBase>(
     val success: Boolean = true,
@@ -52,6 +55,29 @@ fun ApplicationDeploymentDto.toResource() =
         createdBy = createdBy
     )
 
+data class ResourceClaim(
+    override val id: String,
+    val ownerId: PrincipalUID,
+    val resourceId: Long,
+    val credentials: JsonNode,
+    override val createdDate: LocalDateTime,
+    override val modifiedDate: LocalDateTime,
+    override val createdBy: String,
+    override val modifiedBy: String
+) : ResourceBase
+
+fun ResourceClaimDto.toResource() =
+    ResourceClaim(
+        id = id.toString(),
+        ownerId = ownerId,
+        resourceId = resourceId,
+        credentials = credentials,
+        createdDate = createdDate,
+        modifiedDate = modifiedDate,
+        createdBy = createdBy,
+        modifiedBy = modifiedBy
+    )
+
 data class User(
     override val id: String,
     val userId: String,
@@ -73,11 +99,13 @@ fun UserDto.toResource() =
         modifiedDate = modifiedDate
     )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Resource(
     override val id: String,
     val name: String,
     val kind: ResourceKind,
-    val ownerId: UUID,
+    val ownerId: PrincipalUID,
+    val claims: List<ResourceClaim>? = null,
     override val createdDate: LocalDateTime,
     override val modifiedDate: LocalDateTime,
     override val createdBy: String,
@@ -93,7 +121,8 @@ fun ResourceDto.toResource() =
         createdDate = createdDate,
         modifiedDate = modifiedDate,
         createdBy = createdBy,
-        modifiedBy = modifiedBy
+        modifiedBy = modifiedBy,
+        claims = claims?.toResources()
     )
 
 @JvmName("applicationDeploymentsToResources")
@@ -102,8 +131,11 @@ fun List<ApplicationDeploymentDto>.toResources() = this.map { it.toResource() }
 @JvmName("usersToResources")
 fun List<UserDto>.toResources() = this.map { it.toResource() }
 
-@JvmName("ResourceResourceToResources")
+@JvmName("ResourceDtoToResources")
 fun List<ResourceDto>.toResources() = this.map { it.toResource() }
+
+@JvmName("ResourceClaimDtoToResources")
+fun List<ResourceClaimDto>.toResources() = this.map { it.toResource() }
 
 inline fun <reified T : ResourceBase> T.okResponse() = AuroraResponse(items = listOf(this))
 inline fun <reified T : ResourceBase> List<T>.okResponse() = AuroraResponse(items = this)

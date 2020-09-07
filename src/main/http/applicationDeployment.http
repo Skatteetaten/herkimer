@@ -2,11 +2,11 @@ POST http://localhost:8080/applicationDeployment
 Content-Type: application/json
 
 {
-  "name": "testApp",
+  "name": "kris3",
   "environmentName": "dev",
   "cluster": "utv",
   "businessGroup": "aurora",
-  "applicationName": "nameForApp"
+  "applicationName": "tulleAppen"
 }
 
 ###

@@ -2,10 +2,10 @@ POST http://localhost:8080/resource
 Content-Type: application/json
 
 {
-"name": "my minioResource",
-  "kind": "MinioPolicy",
-  "ownerId": "46c76944-9234-4e6d-8149-b838cd3dbf10"
+"name": "myDB",
+  "kind": "ExternalSchema",
+  "ownerId": "7161d71b51"
 }
 
 ###
-GET http://localhost:8080/resource?ownerId=46c76944-9234-4e6d-8149-b838cd3dbf10
+GET http://localhost:8080/resource?claimedBy=46c76944-9234-4e6d-8149-b838cd3dbf10

@@ -1,6 +1,6 @@
 CREATE TABLE PRINCIPAL
 (
-    id               uuid PRIMARY KEY,
+    id               VARCHAR(10) PRIMARY KEY,
     type             VARCHAR(255) NOT NULL,
     name             VARCHAR(255) NOT NULL,
     environment_name VARCHAR(255),
@@ -13,4 +13,3 @@ CREATE TABLE PRINCIPAL
     modified_date    TIMESTAMP,
     modified_by      VARCHAR(255)
 )
-

@@ -1,27 +1,27 @@
 package no.skatteetaten.aurora.herkimer.dao
 
+import com.fasterxml.jackson.databind.JsonNode
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jdbc.repository.query.Query
-import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
-@Table("resource")
-data class ResourceEntity(
+@Table("resource_claim")
+data class ResourceClaimEntity(
+
     @Id
     val id: Long? = null,
-    val kind: ResourceKind,
-    val name: String,
     val ownerId: PrincipalUID,
-    @Column("resource_id")
-    val claims: Set<ResourceClaimEntity> = emptySet(),
+    val resourceId: Long,
+    val credentials: JsonNode,
 
     @CreatedDate
     val createdDate: LocalDateTime? = null,
+
     @LastModifiedDate
     val modifiedDate: LocalDateTime? = null,
 
@@ -29,17 +29,14 @@ data class ResourceEntity(
     val modifiedBy: String = "aurora"
 )
 
-enum class ResourceKind {
-    MinioPolicy, ManagedPostgresDatabase, ManagedOracleSchema, ExternalSchema
-}
-
 @Repository
-interface ResourceRepository : CrudRepository<ResourceEntity, Long> {
+interface ResourceClaimRepository : CrudRepository<ResourceClaimEntity, Long> {
 
-    @Query(
-        "SELECT * FROM resource r " +
-            "INNER JOIN resource_claim rc on r.id = rc.resource_id " +
-            "WHERE rc.owner_id=:claimedBy"
-    )
-    fun findAllClaimedBy(claimedBy: PrincipalUID): Set<ResourceEntity>
+    @Query("SELECT id, owner_id, resource_id, credentials, created_date, modified_date, created_by, modified_by " +
+        "FROM resource_claim WHERE resource_id=:resourceId")
+    fun findAllByResourceId(resourceId: Long): List<ResourceClaimEntity>
+
+    @Query("SELECT id, owner_id, resource_id, credentials, created_date, modified_date, created_by, modified_by " +
+        "FROM resource_claim WHERE owner_id=:ownerId")
+    fun findAllByOwnerId(ownerId: PrincipalUID): List<ResourceClaimEntity>
 }

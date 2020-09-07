@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class ApplicationConfig {
     @Bean
-    // TOOD: Only for develop purposes
+    // TODO: Only for develop purposes
     fun flywayMigrationStrategy(): FlywayMigrationStrategy = FlywayMigrationStrategy {
         it.clean()
         it.migrate()

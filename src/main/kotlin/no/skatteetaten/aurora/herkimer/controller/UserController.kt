@@ -1,5 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -9,7 +10,6 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
 
 data class UserPayload(
     val userId: String,
@@ -25,7 +25,7 @@ class UserController(private val principalService: PrincipalService) {
     ): AuroraResponse<User> =
         userPayload.run {
             principalService.createUser(
-                id = userId,
+                userId = userId,
                 name = name
             ).toResource()
                 .okResponse()
@@ -38,13 +38,13 @@ class UserController(private val principalService: PrincipalService) {
             .okResponse()
 
     @GetMapping("/{id}")
-    fun getUser(@PathVariable id: UUID) =
+    fun getUser(@PathVariable id: PrincipalUID) =
         principalService.findUser(id)?.toResource()?.okResponse()
             ?: throw NoSuchResourceException("Could not find User with id=$id")
 
     @PutMapping("/{id}")
     fun update(
-        @PathVariable id: UUID,
+        @PathVariable id: PrincipalUID,
         @RequestBody payload: UserPayload
     ): AuroraResponse<User> {
         val existingUser = principalService.findUser(id)
@@ -60,5 +60,5 @@ class UserController(private val principalService: PrincipalService) {
     }
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: UUID) = principalService.deleteUser(id)
+    fun delete(@PathVariable id: PrincipalUID) = principalService.deleteUser(id)
 }

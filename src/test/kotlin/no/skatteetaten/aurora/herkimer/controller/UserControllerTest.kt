@@ -1,6 +1,9 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.delete
@@ -19,7 +22,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
-import java.util.UUID
 
 @AutoConfigureEmbeddedDatabase
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
@@ -61,9 +63,35 @@ class UserControllerTest {
     }
 
     @Test
+    fun `Create two Users when they have same property values then return same User`() {
+        mockLocalDateTimeToNow { expectedTime ->
+            val userPayload = UserPayload(
+                name = "name",
+                userId = "userid"
+            )
+
+            val firstUserResource = mockMvc.post(
+                path = Path("/user/"),
+                body = userPayload,
+                headers = HttpHeaders().contentTypeJson(),
+                fn = {}
+            ).response.contentAsString
+
+            val secondUserResource = mockMvc.post(
+                path = Path("/user/"),
+                body = userPayload,
+                headers = HttpHeaders().contentTypeJson(),
+                fn = {}
+            ).response.contentAsString
+
+            assertThat(firstUserResource).isEqualTo(secondUserResource)
+        }
+    }
+
+    @Test
     fun `Return Not Found User when there are none in DB`() {
-        val nonExistingUserId = UUID.randomUUID().toString()
-        mockMvc.get(Path("/user/{nonExistingAdId}", nonExistingUserId)) {
+        val nonExistingUserId = PrincipalUID.randomId().toString()
+        mockMvc.get(Path("/user/{nonExistingUserId}", nonExistingUserId)) {
             status(HttpStatus.NOT_FOUND)
         }
     }
@@ -133,5 +161,24 @@ class UserControllerTest {
                     )
             }
         }
+    }
+
+    @Test
+    fun `Update User When it does not exists Then return 404 with error`() {
+        val nonExistingId = PrincipalUID.randomId().toString()
+        val updatedUser = UserPayload(
+            name = "herkimer",
+            userId = "007"
+        )
+
+            mockMvc.put(
+                path = Path("/user/{id}", nonExistingId),
+                headers = HttpHeaders().contentTypeJson(),
+                body = updatedUser
+            ) {
+                status(HttpStatus.NOT_FOUND)
+                    .responseJsonPath("$.count").equalsValue(1)
+                    .responseJsonPath("$.errors[0].errorMessage").contains(nonExistingId)
+            }
     }
 }

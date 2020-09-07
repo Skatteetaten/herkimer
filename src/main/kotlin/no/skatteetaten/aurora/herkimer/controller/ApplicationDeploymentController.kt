@@ -1,5 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -9,7 +10,6 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
 
 data class ApplicationDeploymentPayload(
     val name: String,
@@ -25,7 +25,7 @@ class ApplicationDeploymentController(
     private val principalService: PrincipalService
 ) {
     @GetMapping("/{id}")
-    fun findById(@PathVariable id: UUID): AuroraResponse<ApplicationDeployment> =
+    fun findById(@PathVariable id: PrincipalUID): AuroraResponse<ApplicationDeployment> =
         principalService.findApplicationDeployment(id)?.toResource()?.okResponse()
             ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
 
@@ -50,7 +50,7 @@ class ApplicationDeploymentController(
 
     @PutMapping("/{id}")
     fun update(
-        @PathVariable id: UUID,
+        @PathVariable id: PrincipalUID,
         @RequestBody payload: ApplicationDeploymentPayload
     ): AuroraResponse<ApplicationDeployment> {
         val existingAd = principalService.findApplicationDeployment(id)
@@ -70,5 +70,5 @@ class ApplicationDeploymentController(
     }
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: UUID) = principalService.deleteApplicationDeployment(id)
+    fun delete(@PathVariable id: PrincipalUID) = principalService.deleteApplicationDeployment(id)
 }

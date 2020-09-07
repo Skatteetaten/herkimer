@@ -8,12 +8,16 @@ import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
+import java.lang.IllegalArgumentException
 
 @ControllerAdvice
 class ErrorHandler : ResponseEntityExceptionHandler() {
 
     @ExceptionHandler(NoSuchResourceException::class)
     fun handleNotFoundException(ex: NoSuchResourceException, req: WebRequest) = handleException(ex, req, HttpStatus.NOT_FOUND)
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException, req: WebRequest) = handleException(ex, req, HttpStatus.BAD_REQUEST)
 
     private fun handleException(e: Exception, request: WebRequest, httpStatus: HttpStatus): ResponseEntity<*> {
 

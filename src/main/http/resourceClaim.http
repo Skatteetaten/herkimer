@@ -1,0 +1,20 @@
+POST http://localhost:8080/resource/2/claims
+Content-Type: application/json
+
+{
+  "ownerId": "7161d71b51",
+  "credentials" : {
+    "brukernavn": "bruker2",
+    "passord": "pass123"
+  }
+}
+
+###
+GET http://localhost:8080/resource?claimedBy=7161d71b51
+
+
+###
+GET http://localhost:8080/resource?ownerId=48d8cfdd-d44c-4b42-b31b-52f50af1fa1c
+
+###
+GET http://localhost:8080/resource/1
