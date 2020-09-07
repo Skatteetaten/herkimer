@@ -1,10 +1,13 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import no.skatteetaten.aurora.herkimer.service.ApplicationDeployment
-import no.skatteetaten.aurora.herkimer.service.User
+import no.skatteetaten.aurora.herkimer.dao.ResourceKind
+import no.skatteetaten.aurora.herkimer.service.ApplicationDeploymentDto
+import no.skatteetaten.aurora.herkimer.service.ResourceDto
+import no.skatteetaten.aurora.herkimer.service.UserDto
 import java.time.LocalDateTime
+import java.util.UUID
 
-data class AuroraResponse<T : Resource>(
+data class AuroraResponse<T : ResourceBase>(
     val success: Boolean = true,
     val message: String = "OK",
     val items: List<T> = emptyList(),
@@ -12,24 +15,32 @@ data class AuroraResponse<T : Resource>(
     val count: Int = items.size + errors.size
 )
 
-abstract class Resource
+interface ResourceBase {
+    val id: String
+    val createdDate: LocalDateTime
+    val modifiedDate: LocalDateTime
+    val createdBy: String
+    val modifiedBy: String
+}
+
 data class ErrorResponse(val errorMessage: String)
 
-data class ApplicationDeploymentResource(
-    val id: String,
+data class ApplicationDeployment(
+    override val id: String,
     val name: String,
     val environmentName: String,
     val cluster: String,
     val businessGroup: String,
     val applicationName: String,
-    val createdDate: LocalDateTime,
-    val modifiedDate: LocalDateTime,
-    val createdBy: String,
-    val modifiedBy: String
-) : Resource()
+    override val createdDate: LocalDateTime,
+    override val modifiedDate: LocalDateTime,
+    override val createdBy: String,
+    override val modifiedBy: String
+) : ResourceBase
 
-fun ApplicationDeployment.toResource() =
-    ApplicationDeploymentResource(id = id.toString(),
+fun ApplicationDeploymentDto.toResource() =
+    ApplicationDeployment(
+        id = id.toString(),
         name = name,
         environmentName = environmentName,
         cluster = cluster,
@@ -41,24 +52,18 @@ fun ApplicationDeployment.toResource() =
         createdBy = createdBy
     )
 
-@JvmName("applicationDeploymentsToResources")
-fun List<ApplicationDeployment>.toResources() = this.map { it.toResource() }
-
-@JvmName("usersToResources")
-fun List<User>.toResources() = this.map { it.toResource() }
-
-data class UserResource(
-    val id: String,
+data class User(
+    override val id: String,
     val userId: String,
     val name: String,
-    val createdBy: String,
-    val createdDate: LocalDateTime,
-    val modifiedBy: String,
-    val modifiedDate: LocalDateTime
-) : Resource()
+    override val createdBy: String,
+    override val createdDate: LocalDateTime,
+    override val modifiedBy: String,
+    override val modifiedDate: LocalDateTime
+) : ResourceBase
 
-fun User.toResource() =
-    UserResource(
+fun UserDto.toResource() =
+    User(
         id = id.toString(),
         userId = userId,
         name = name,
@@ -68,5 +73,37 @@ fun User.toResource() =
         modifiedDate = modifiedDate
     )
 
-inline fun <reified T : Resource> T.okResponse() = AuroraResponse(items = listOf(this))
-inline fun <reified T : Resource> List<T>.okResponse() = AuroraResponse(items = this)
+data class Resource(
+    override val id: String,
+    val name: String,
+    val kind: ResourceKind,
+    val ownerId: UUID,
+    override val createdDate: LocalDateTime,
+    override val modifiedDate: LocalDateTime,
+    override val createdBy: String,
+    override val modifiedBy: String
+) : ResourceBase
+
+fun ResourceDto.toResource() =
+    Resource(
+        id = id.toString(),
+        name = name,
+        kind = kind,
+        ownerId = ownerId,
+        createdDate = createdDate,
+        modifiedDate = modifiedDate,
+        createdBy = createdBy,
+        modifiedBy = modifiedBy
+    )
+
+@JvmName("applicationDeploymentsToResources")
+fun List<ApplicationDeploymentDto>.toResources() = this.map { it.toResource() }
+
+@JvmName("usersToResources")
+fun List<UserDto>.toResources() = this.map { it.toResource() }
+
+@JvmName("ResourceResourceToResources")
+fun List<ResourceDto>.toResources() = this.map { it.toResource() }
+
+inline fun <reified T : ResourceBase> T.okResponse() = AuroraResponse(items = listOf(this))
+inline fun <reified T : ResourceBase> List<T>.okResponse() = AuroraResponse(items = this)

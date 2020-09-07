@@ -1,0 +1,11 @@
+POST http://localhost:8080/resource
+Content-Type: application/json
+
+{
+"name": "my minioResource",
+  "kind": "MinioPolicy",
+  "ownerId": "46c76944-9234-4e6d-8149-b838cd3dbf10"
+}
+
+###
+GET http://localhost:8080/resource?ownerId=46c76944-9234-4e6d-8149-b838cd3dbf10

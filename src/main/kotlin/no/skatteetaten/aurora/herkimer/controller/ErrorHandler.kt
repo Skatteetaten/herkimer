@@ -29,7 +29,7 @@ class ErrorHandler : ResponseEntityExceptionHandler() {
             logger.error("Unexpected error while handling request", e)
         }
 
-        val response = AuroraResponse<Resource>(success = false, message = e.message ?: "", errors = listOf(error))
+        val response = AuroraResponse<ResourceBase>(success = false, message = e.message ?: "", errors = listOf(error))
 
         return handleExceptionInternal(e, response, headers, httpStatus, request)
     }

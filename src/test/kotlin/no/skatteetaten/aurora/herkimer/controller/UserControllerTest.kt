@@ -1,10 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
-import no.skatteetaten.aurora.herkimer.configureDefaults
-import no.skatteetaten.aurora.mockmvc.extensions.MockMvcData
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.delete
@@ -14,6 +10,8 @@ import no.skatteetaten.aurora.mockmvc.extensions.put
 import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
 import no.skatteetaten.aurora.mockmvc.extensions.status
 import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
+import org.flywaydb.core.Flyway
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -30,6 +28,18 @@ class UserControllerTest {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var testDataCreators: TestDataCreators
+
+    @Autowired
+    private lateinit var flyway: Flyway
+
+    @BeforeEach
+    fun beforeEach() {
+        flyway.clean()
+        flyway.migrate()
+    }
 
     @Test
     fun `Create User when payload is sent`() {
@@ -60,7 +70,7 @@ class UserControllerTest {
 
     @Test
     fun `Return User when there are one in DB`() {
-        val id = createUserAndReturnId()
+        val id = testDataCreators.createUserAndReturnId()
 
         mockMvc.get(Path("/user/{id}", id)) {
             statusIsOk()
@@ -74,7 +84,7 @@ class UserControllerTest {
 
     @Test
     fun `Return list of User when there are one in DB`() {
-        createUser()
+        testDataCreators.createUserAndReturnId()
 
         mockMvc.get(Path("/user/")) {
             statusIsOk()
@@ -87,9 +97,9 @@ class UserControllerTest {
 
     @Test
     fun `Delete User When it exists Then return HTTP_OK`() {
-        val id = createUserAndReturnId()
+        val id = testDataCreators.createUserAndReturnId()
 
-        mockMvc.delete(Path("/user/{adId}", id)) {
+        mockMvc.delete(Path("/user/{id}", id)) {
             statusIsOk()
         }
     }
@@ -97,7 +107,7 @@ class UserControllerTest {
     @Test
     fun `Update User When it exists Then return HTTP_OK and updated resource`() {
         val (createdTime, id) = mockLocalDateTimeToNow {
-            createUserAndReturnId()
+            testDataCreators.createUserAndReturnId()
         }
 
         val updatedUser = UserPayload(
@@ -124,23 +134,4 @@ class UserControllerTest {
             }
         }
     }
-
-    private fun createUserAndReturnId() = jacksonObjectMapper().configureDefaults()
-        .readValue<AuroraResponse<UserResource>>(createUser().response.contentAsString)
-        .items
-        .single()
-        .id
-
-    private fun createUser(
-        user: UserPayload = UserPayload(
-            name = "name",
-            userId = "testid"
-        ),
-        fn: MockMvcData.() -> Unit = {}
-    ) = mockMvc.post(
-        path = Path("/user/"),
-        body = user,
-        headers = HttpHeaders().contentTypeJson(),
-        fn = fn
-    )
 }

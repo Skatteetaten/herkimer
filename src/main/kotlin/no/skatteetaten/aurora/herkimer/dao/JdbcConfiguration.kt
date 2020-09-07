@@ -17,7 +17,7 @@ class JdbcConfiguration : AbstractJdbcConfiguration() {
     fun idSettingPrincipal(): ApplicationListener<BeforeSaveEvent<Any>> =
         ApplicationListener {
             val entity = it.entity
-            if (entity is Principal) {
+            if (entity is PrincipalEntity) {
                 if (entity.id == null) {
                     entity.id = UUID.randomUUID()
                 }

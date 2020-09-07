@@ -25,7 +25,7 @@ class ApplicationDeploymentController(
     private val principalService: PrincipalService
 ) {
     @GetMapping("/{id}")
-    fun findById(@PathVariable id: UUID): AuroraResponse<ApplicationDeploymentResource> =
+    fun findById(@PathVariable id: UUID): AuroraResponse<ApplicationDeployment> =
         principalService.findApplicationDeployment(id)?.toResource()?.okResponse()
             ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
 
@@ -52,7 +52,7 @@ class ApplicationDeploymentController(
     fun update(
         @PathVariable id: UUID,
         @RequestBody payload: ApplicationDeploymentPayload
-    ): AuroraResponse<ApplicationDeploymentResource> {
+    ): AuroraResponse<ApplicationDeployment> {
         val existingAd = principalService.findApplicationDeployment(id)
             ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
         return payload.run {

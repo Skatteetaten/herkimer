@@ -4,11 +4,13 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jdbc.repository.query.Query
+import org.springframework.data.relational.core.mapping.Table
 import org.springframework.data.repository.CrudRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
-data class Principal(
+@Table("principal")
+data class PrincipalEntity(
     @Id
     var id: UUID? = null,
     val type: PrincipalType,
@@ -33,11 +35,11 @@ enum class PrincipalType {
     ApplicationDeployment, User
 }
 
-interface PrincipalRepository : CrudRepository<Principal, UUID> {
+interface PrincipalRepository : CrudRepository<PrincipalEntity, UUID> {
     @Query(
         "SELECT type, name, environment_name, cluster, user_id, id, business_group, " +
             "application_name, created_date, created_by, modified_by, modified_date " +
             "FROM PRINCIPAL WHERE type LIKE :principalType"
     )
-    fun findAllPrincipalByType(principalType: String): List<Principal>
+    fun findAllPrincipalByType(principalType: String): List<PrincipalEntity>
 }

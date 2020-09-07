@@ -22,7 +22,7 @@ class UserController(private val principalService: PrincipalService) {
     @PostMapping
     fun createUser(
         @RequestBody userPayload: UserPayload
-    ): AuroraResponse<UserResource> =
+    ): AuroraResponse<User> =
         userPayload.run {
             principalService.createUser(
                 id = userId,
@@ -32,7 +32,7 @@ class UserController(private val principalService: PrincipalService) {
         }
 
     @GetMapping
-    fun getAllUsers(): AuroraResponse<UserResource> =
+    fun getAllUsers(): AuroraResponse<User> =
         principalService.findAllUsers()
             .toResources()
             .okResponse()
@@ -46,7 +46,7 @@ class UserController(private val principalService: PrincipalService) {
     fun update(
         @PathVariable id: UUID,
         @RequestBody payload: UserPayload
-    ): AuroraResponse<UserResource> {
+    ): AuroraResponse<User> {
         val existingUser = principalService.findUser(id)
             ?: throw NoSuchResourceException("Could not find User with id=$id")
 

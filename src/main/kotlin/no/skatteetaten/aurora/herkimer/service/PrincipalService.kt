@@ -1,7 +1,7 @@
 package no.skatteetaten.aurora.herkimer.service
 
 import no.skatteetaten.aurora.herkimer.controller.DataAccessException
-import no.skatteetaten.aurora.herkimer.dao.Principal
+import no.skatteetaten.aurora.herkimer.dao.PrincipalEntity
 import no.skatteetaten.aurora.herkimer.dao.PrincipalRepository
 import no.skatteetaten.aurora.herkimer.dao.PrincipalType
 import org.springframework.data.repository.findByIdOrNull
@@ -21,8 +21,8 @@ class PrincipalService(
         cluster: String,
         businessGroup: String,
         applicationName: String
-    ): ApplicationDeployment {
-        val principalAd = Principal(
+    ): ApplicationDeploymentDto {
+        val principalAd = PrincipalEntity(
             type = PrincipalType.ApplicationDeployment,
             name = name,
             environmentName = environmentName,
@@ -34,8 +34,8 @@ class PrincipalService(
         return principalRepository.save(principalAd).toApplicationDeployment()
     }
 
-    fun updateApplicationDeployment(ad: ApplicationDeployment): ApplicationDeployment {
-        val adPrincipal = Principal(
+    fun updateApplicationDeployment(ad: ApplicationDeploymentDto): ApplicationDeploymentDto {
+        val adPrincipal = PrincipalEntity(
             id = ad.id,
             type = PrincipalType.ApplicationDeployment,
             name = ad.name,
@@ -52,21 +52,23 @@ class PrincipalService(
         return principalRepository.save(adPrincipal).toApplicationDeployment()
     }
 
-    fun findApplicationDeployment(id: UUID): ApplicationDeployment? =
+    fun findById(id: UUID): PrincipalBase? = principalRepository.findByIdOrNull(id)?.toPrincipalBase()
+
+    fun findApplicationDeployment(id: UUID): ApplicationDeploymentDto? =
         principalRepository.findByIdOrNull(id)?.toApplicationDeployment()
 
-    fun findAllUsers(): List<User> =
+    fun findAllUsers(): List<UserDto> =
         principalRepository.findAllPrincipalByType(PrincipalType.User.toString()).map { it.toUser() }
 
-    fun findAllApplicationDeployment(): List<ApplicationDeployment> =
+    fun findAllApplicationDeployment(): List<ApplicationDeploymentDto> =
         principalRepository.findAllPrincipalByType(PrincipalType.ApplicationDeployment.toString())
             .map { it.toApplicationDeployment() }
 
     fun deleteApplicationDeployment(id: UUID): Unit =
         principalRepository.deleteById(id)
 
-    fun createUser(id: String, name: String): User {
-        val principaluser = Principal(
+    fun createUser(id: String, name: String): UserDto {
+        val principaluser = PrincipalEntity(
             type = PrincipalType.User,
             name = name,
             userId = id
@@ -75,27 +77,33 @@ class PrincipalService(
         return principalRepository.save(principaluser).toUser()
     }
 
-    fun findUser(id: UUID): User? = principalRepository.findByIdOrNull(id)?.toUser()
+    fun findUser(id: UUID): UserDto? = principalRepository.findByIdOrNull(id)?.toUser()
 
-    fun updateUser(user: User): User = principalRepository.save(
-        Principal(
-            id = user.id,
+    fun updateUser(userDto: UserDto): UserDto = principalRepository.save(
+        PrincipalEntity(
+            id = userDto.id,
             type = PrincipalType.User,
-            name = user.name,
-            userId = user.userId,
-            modifiedBy = user.modifiedBy,
-            modifiedDate = user.modifiedDate,
-            createdBy = user.createdBy,
-            createdDate = user.createdDate
+            name = userDto.name,
+            userId = userDto.userId,
+            modifiedBy = userDto.modifiedBy,
+            modifiedDate = userDto.modifiedDate,
+            createdBy = userDto.createdBy,
+            createdDate = userDto.createdDate
         )
     ).toUser()
 
     fun deleteUser(id: UUID) = principalRepository.deleteById(id)
 }
 
-private fun Principal.toApplicationDeployment(): ApplicationDeployment =
-    takeIf { it.type == PrincipalType.ApplicationDeployment }?.run {
-        ApplicationDeployment(
+private fun PrincipalEntity.toPrincipalBase() =
+    when (type) {
+        PrincipalType.ApplicationDeployment -> toApplicationDeployment()
+        PrincipalType.User -> toUser()
+    }
+
+private fun PrincipalEntity.toApplicationDeployment(): ApplicationDeploymentDto =
+    takeUnless { it.type != PrincipalType.ApplicationDeployment }?.run {
+        ApplicationDeploymentDto(
             id = assertNotNull(::id),
             name = name,
             environmentName = assertNotNull(::environmentName),
@@ -107,11 +115,11 @@ private fun Principal.toApplicationDeployment(): ApplicationDeployment =
             modifiedBy = modifiedBy,
             modifiedDate = assertNotNull(::modifiedDate)
         )
-    } ?: throw DataAccessException("Principal with id=${this.id} is not ApplicationDeployment")
+    } ?: throw DataAccessException("Principal with id=$id is not ApplicationDeployment")
 
-private fun Principal.toUser(): User =
+private fun PrincipalEntity.toUser(): UserDto =
     takeUnless { it.type != PrincipalType.User }?.run {
-        User(
+        UserDto(
             id = assertNotNull(::id),
             userId = assertNotNull(::userId),
             name = name,
@@ -120,7 +128,7 @@ private fun Principal.toUser(): User =
             modifiedBy = modifiedBy,
             modifiedDate = assertNotNull(::modifiedDate)
         )
-    } ?: throw DataAccessException("Principal with id=${this.id} is not User")
+    } ?: throw DataAccessException("Principal with id=$id is not User")
 
 fun <T> assertNotNull(p: KProperty0<T?>): T =
     p.get()

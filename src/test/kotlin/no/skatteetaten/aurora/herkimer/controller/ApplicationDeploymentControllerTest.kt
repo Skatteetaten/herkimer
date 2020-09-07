@@ -1,10 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
-import no.skatteetaten.aurora.herkimer.configureDefaults
-import no.skatteetaten.aurora.mockmvc.extensions.MockMvcData
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.delete
@@ -14,6 +10,8 @@ import no.skatteetaten.aurora.mockmvc.extensions.put
 import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
 import no.skatteetaten.aurora.mockmvc.extensions.status
 import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
+import org.flywaydb.core.Flyway
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -29,12 +27,35 @@ import java.util.UUID
 class ApplicationDeploymentControllerTest {
 
     @Autowired
+    private lateinit var testDataCreators: TestDataCreators
+
+    @Autowired
     private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var flyway: Flyway
+
+    @BeforeEach
+    fun beforeEach() {
+        flyway.clean()
+        flyway.migrate()
+    }
 
     @Test
     fun `Create ApplicationDeployment when body has ApplicationDeployment`() {
         mockLocalDateTimeToNow { expectedTime ->
-            createApplicationDeployment {
+            val adPayload = ApplicationDeploymentPayload(
+                name = "name",
+                environmentName = "env",
+                cluster = "cluster",
+                applicationName = "whoami",
+                businessGroup = "aurora"
+            )
+            mockMvc.post(
+                path = Path("/applicationDeployment/"),
+                body = adPayload,
+                headers = HttpHeaders().contentTypeJson()
+            ) {
                 statusIsOk()
                     .responseJsonPath("$.count").equalsValue(1)
                     .responseJsonPath("$.success").isTrue()
@@ -55,7 +76,7 @@ class ApplicationDeploymentControllerTest {
 
     @Test
     fun `Return ApplicationDeployment when there are one in DB`() {
-        val adId = createApplicationDeploymentAndReturnId()
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
 
         mockMvc.get(Path("/applicationDeployment/{adId}", adId)) {
             statusIsOk()
@@ -68,28 +89,20 @@ class ApplicationDeploymentControllerTest {
 
     @Test
     fun `Return list of ApplicationDeployment when there are one in DB`() {
-        createApplicationDeployment(
-            ad = ApplicationDeploymentPayload(
-                name = "testApp",
-                environmentName = "dev",
-                cluster = "utv",
-                applicationName = "name",
-                businessGroup = "aurora"
-            )
-        )
+        testDataCreators.createApplicationDeploymentAndReturnId()
 
         mockMvc.get(Path("/applicationDeployment/")) {
             statusIsOk()
                 .responseJsonPath("$.count").equalsValue(1)
                 .responseJsonPath("$.success").isTrue()
                 .responseJsonPath("$.items[0].id").isNotEmpty()
-                .responseJsonPath("$.items[0].name").equalsValue("testApp")
+                .responseJsonPath("$.items[0].name").equalsValue("name")
         }
     }
 
     @Test
     fun `Delete ApplicationDeployment When it exists Then return HTTP_OK`() {
-        val adId = createApplicationDeploymentAndReturnId()
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
 
         mockMvc.delete(Path("/applicationDeployment/{adId}", adId)) {
             statusIsOk()
@@ -98,7 +111,7 @@ class ApplicationDeploymentControllerTest {
 
     @Test
     fun `Update ApplicationDeployment When it exists Then return HTTP_OK and updated resource`() {
-        val adId = createApplicationDeploymentAndReturnId()
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
 
         val updatedAd = ApplicationDeploymentPayload(
             name = "herkimer",
@@ -120,27 +133,4 @@ class ApplicationDeploymentControllerTest {
                 .responseJsonPath("$.items[0].name").equalsValue("herkimer")
         }
     }
-
-    private fun createApplicationDeploymentAndReturnId() = jacksonObjectMapper()
-        .configureDefaults()
-        .readValue<AuroraResponse<ApplicationDeploymentResource>>(createApplicationDeployment().response.contentAsString)
-        .items
-        .single()
-        .id
-
-    private fun createApplicationDeployment(
-        ad: ApplicationDeploymentPayload = ApplicationDeploymentPayload(
-            name = "name",
-            environmentName = "env",
-            cluster = "cluster",
-            applicationName = "whoami",
-            businessGroup = "aurora"
-        ),
-        fn: MockMvcData.() -> Unit = {}
-    ) = mockMvc.post(
-        path = Path("/applicationDeployment/"),
-        body = ad,
-        headers = HttpHeaders().contentTypeJson(),
-        fn = fn
-    )
 }
