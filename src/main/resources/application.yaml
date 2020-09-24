@@ -28,7 +28,7 @@ aurora:
     authentication:
         enabled: true
         token:
-            header-value-prefix: bearer
+            header-value-prefix: aurora-token
 
 ---
 spring:

@@ -18,7 +18,7 @@ class WebSecurityConfig(
     val sharedSecretReader: SharedSecretReader,
     @Value("\${management.server.port}") val managementPort: Int,
     @Value("\${aurora.authentication.enabled:true}") val authenticationEnabled: Boolean,
-    @Value("\${aurora.authentication.token.header-value-prefix:bearer}") val headerValuePrefix: String
+    @Value("\${aurora.authentication.token.header-value-prefix:aurora-token}") val headerValuePrefix: String
 ) : WebSecurityConfigurerAdapter() {
 
     override fun configure(http: HttpSecurity) {

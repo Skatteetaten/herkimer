@@ -40,13 +40,13 @@ abstract class WebSecurityConfigTest(val mvc: MockMvc, val authEnabled: AuthStat
 
     @Test
     fun `access forbidden when incorrect token provided`() {
-        mvc.perform(get("/").header("Authorization", "bearer incorrect"))
+        mvc.perform(get("/").header("Authorization", "aurora-token incorrect"))
             .andExpect(if (authEnabled == AUTH_ENABLED) status().isForbidden else status().isOk)
     }
 
     @Test
     fun `access granted when correct token provided`() {
-        mvc.perform(get("/").header("Authorization", "bearer secret_from_file"))
+        mvc.perform(get("/").header("Authorization", "aurora-token secret_from_file"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.principal").value("aurora"))
             .andExpect(jsonPath("$.authorities").value("admin"))

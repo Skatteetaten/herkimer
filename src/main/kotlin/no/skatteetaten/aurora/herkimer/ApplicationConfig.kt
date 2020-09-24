@@ -8,19 +8,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
 class ApplicationConfig {
-    @Bean
-    // TODO: Only for develop purposes
-    fun flywayMigrationStrategy(): FlywayMigrationStrategy = FlywayMigrationStrategy {
-        it.clean()
-        it.migrate()
-    }
-
     @Bean
     fun objectMapper(): ObjectMapper = jacksonObjectMapper().configureDefaults()
 }
