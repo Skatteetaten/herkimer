@@ -70,10 +70,12 @@ class ResourceController(
     fun findAllClaimedBy(
         @RequestParam(required = true) claimedBy: PrincipalUID,
         @RequestParam(required = false, defaultValue = "true") includeClaims: Boolean,
-        @RequestParam(required = false, defaultValue = "true") onlyMyClaims: Boolean
+        @RequestParam(required = false, defaultValue = "true") onlyMyClaims: Boolean,
+        @RequestParam(required = false) name: String?,
+        @RequestParam(required = false) resourceKind: ResourceKind?
     ): AuroraResponse<Resource> {
         return if (principalService.findById(claimedBy) == null) AuroraResponse()
-        else resourceService.findAllClaimedBy(claimedBy, includeClaims, onlyMyClaims).toResources().okResponse()
+            else resourceService.findAllClaimedBy(claimedBy, name, resourceKind, includeClaims, onlyMyClaims).toResources().okResponse()
     }
 
     @GetMapping("/{id}")

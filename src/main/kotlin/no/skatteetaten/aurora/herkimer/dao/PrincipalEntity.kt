@@ -3,7 +3,6 @@ package no.skatteetaten.aurora.herkimer.dao
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
-import org.springframework.data.jdbc.repository.query.Query
 import org.springframework.data.relational.core.mapping.Table
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
@@ -18,7 +17,6 @@ data class PrincipalEntity(
     val environmentName: String? = null,
     val cluster: String? = null,
     val businessGroup: String? = null,
-    val applicationName: String? = null,
     val userId: String? = null,
 
     @CreatedDate
@@ -37,33 +35,16 @@ enum class PrincipalType {
 
 @Repository
 interface PrincipalRepository : CrudRepository<PrincipalEntity, PrincipalUID> {
-    @Query(
-        "SELECT type, name, environment_name, cluster, user_id, id, business_group, " +
-            "application_name, created_date, created_by, modified_by, modified_date " +
-            "FROM PRINCIPAL WHERE type LIKE :principalType"
-    )
-    fun findAllPrincipalByType(principalType: String): List<PrincipalEntity>
+    fun findByType(principalType: PrincipalType): List<PrincipalEntity>
 
-    @Query(
-        "SELECT type, name, environment_name, cluster, user_id, id, business_group, " +
-            "application_name, created_date, created_by, modified_by, modified_date " +
-            "FROM PRINCIPAL WHERE name=:name AND environment_name=:environmentName AND " +
-            "cluster=:cluster AND business_group=:businessGroup AND " +
-            "application_name=:applicationName"
-    )
-    fun findApplicationDeploymentByProperties(
+    fun findByNameAndEnvironmentNameAndClusterAndBusinessGroup(
         name: String,
         environmentName: String,
-        applicationName: String,
         cluster: String,
         businessGroup: String
     ): PrincipalEntity
 
-    @Query(
-        "SELECT type, name,  user_id, id, created_date, created_by, modified_by, modified_date " +
-            "FROM PRINCIPAL WHERE name=:name AND user_id=:userId"
-    )
-    fun findUserByProperties(
+    fun findByNameAndUserId(
         name: String,
         userId: String
     ): PrincipalEntity

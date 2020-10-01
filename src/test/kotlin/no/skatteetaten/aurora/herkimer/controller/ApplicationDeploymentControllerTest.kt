@@ -50,7 +50,6 @@ class ApplicationDeploymentControllerTest {
                 name = "name",
                 environmentName = "env",
                 cluster = "cluster",
-                applicationName = "whoami",
                 businessGroup = "aurora"
             )
             mockMvc.post(
@@ -75,7 +74,6 @@ class ApplicationDeploymentControllerTest {
                 name = "name",
                 environmentName = "env",
                 cluster = "cluster",
-                applicationName = "whoami",
                 businessGroup = "aurora"
             )
 
@@ -148,8 +146,7 @@ class ApplicationDeploymentControllerTest {
             name = "herkimer",
             environmentName = "dev",
             cluster = "utv",
-            businessGroup = "aurora",
-            applicationName = "whoami"
+            businessGroup = "aurora"
         )
 
         mockMvc.put(
@@ -172,8 +169,7 @@ class ApplicationDeploymentControllerTest {
             name = "herkimer",
             environmentName = "dev",
             cluster = "utv",
-            businessGroup = "aurora",
-            applicationName = "whoami"
+            businessGroup = "aurora"
         )
 
         mockMvc.put(

@@ -19,6 +19,13 @@ class ErrorHandler : ResponseEntityExceptionHandler() {
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgumentException(ex: IllegalArgumentException, req: WebRequest) = handleException(ex, req, HttpStatus.BAD_REQUEST)
 
+    @ExceptionHandler(RuntimeException::class)
+    fun handleGenericErrors(ex: RuntimeException, req: WebRequest): ResponseEntity<*> {
+        return handleException(ex, req,
+            HttpStatus.INTERNAL_SERVER_ERROR
+        )
+    }
+
     private fun handleException(e: Exception, request: WebRequest, httpStatus: HttpStatus): ResponseEntity<*> {
 
         logger.debug("error", e)

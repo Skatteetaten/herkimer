@@ -35,11 +35,12 @@ enum class ResourceKind {
 
 @Repository
 interface ResourceRepository : CrudRepository<ResourceEntity, Long> {
-
     @Query(
         "SELECT * FROM resource r " +
             "INNER JOIN resource_claim rc on r.id = rc.resource_id " +
-            "WHERE rc.owner_id=:claimedBy"
+            "WHERE rc.owner_id=:claimedBy AND r.name LIKE :name AND r.kind LIKE :resourceKind"
     )
-    fun findAllClaimedBy(claimedBy: PrincipalUID): Set<ResourceEntity>
+    fun findAllClaimedBy(claimedBy: PrincipalUID, name: String, resourceKind: String): Set<ResourceEntity>
+
+    fun findByKindAndNameAndOwnerId(kind: ResourceKind, name: String, ownerId: PrincipalUID): ResourceEntity
 }

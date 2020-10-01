@@ -15,8 +15,7 @@ data class ApplicationDeploymentPayload(
     val name: String,
     val environmentName: String,
     val cluster: String,
-    val businessGroup: String,
-    val applicationName: String
+    val businessGroup: String
 )
 
 @RestController
@@ -42,8 +41,7 @@ class ApplicationDeploymentController(
                 name,
                 environmentName,
                 cluster,
-                businessGroup,
-                applicationName
+                businessGroup
             ).toResource()
                 .okResponse()
         }
@@ -59,7 +57,6 @@ class ApplicationDeploymentController(
             principalService.updateApplicationDeployment(
                 existingAd.copy(
                     name = name,
-                    applicationName = applicationName,
                     businessGroup = businessGroup,
                     cluster = cluster,
                     environmentName = environmentName

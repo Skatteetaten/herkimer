@@ -23,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
+import java.util.UUID
 
 @AutoConfigureEmbeddedDatabase
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
@@ -188,6 +189,93 @@ class ResourceControllerTest {
     }
 
     @Test
+    fun `Resource creation should be idempotent`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+
+        val resourcePayload = ResourcePayload(
+            name = "minio resource",
+            kind = ResourceKind.MinioPolicy,
+            ownerId = PrincipalUID.fromString(adId)
+        )
+        val firstInsertedResourceId = testDataCreators.createResourceAndReturnId(
+            ownerId = adId,
+            kind = resourcePayload.kind,
+            name = resourcePayload.name
+        )
+
+        mockMvc.post(
+            path = Path("/resource"),
+            headers = HttpHeaders().contentTypeJson(),
+            body = resourcePayload
+        ) {
+            statusIsOk()
+            responseJsonPath("$.success").isTrue()
+            responseJsonPath("$.items[0].name").equalsValue(resourcePayload.name)
+            responseJsonPath("$.items[0].kind").equalsValue(resourcePayload.kind.toString())
+            responseJsonPath("$.items[0].ownerId").equalsValue(resourcePayload.ownerId.toString())
+            responseJsonPath("$.items[0].id").equalsValue(firstInsertedResourceId)
+        }
+    }
+
+    @Test
+    fun `ResourceClaim creation should be idempotent`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+
+        val resourceId = testDataCreators.createResourceAndReturnId(ownerId = adId)
+        val credentials = """{"name":"tull"}"""
+        val resourceClaimPayload = ResourceClaimPayload(
+            PrincipalUID.fromString(adId),
+            jacksonObjectMapper().readTree(credentials)
+        )
+
+        val initialClaim = testDataCreators.claimResource(
+            adId,
+            resourceId,
+            credentials
+        )
+
+        mockMvc.post(
+            path = Path("/resource/{id}/claims", resourceId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = resourceClaimPayload
+        ) {
+            statusIsOk()
+            responseJsonPath("$.success").isTrue()
+            responseJsonPath("$.items.length()").equalsValue(1)
+            responseJsonPath("$.items[0].id").equalsValue(initialClaim.id.toString())
+        }
+    }
+
+    @Test
+    fun `Return claimed resources filtered by name and kind when resource and claim exists`() {
+        repeat(5) {
+            val resourceId = testDataCreators.createResourceAndReturnId(
+                kind = ResourceKind.ManagedOracleSchema,
+                name = UUID.randomUUID().toString()
+            )
+            testDataCreators.claimResource(resourceId = resourceId)
+        }
+
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val resourceName = "myresource"
+        val kind = ResourceKind.ManagedPostgresDatabase
+        val resourceId = testDataCreators.createResourceAndReturnId(kind = kind, name = resourceName)
+        testDataCreators.claimResource(resourceId = resourceId, ownerOfClaim = adId)
+
+        mockMvc.get(Path("/resource?claimedBy={adId}&name={name}&kind={kind}", adId, resourceName, kind.toString())) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.success").isTrue()
+                .responseJsonPath("$.items.[0].name").equalsValue(resourceName)
+                .responseJsonPath("$.items.[0].ownerId").isNotEmpty()
+                .responseJsonPath("$.items[0].id").isNotEmpty()
+                .responseJsonPath("$.items[0].kind").equalsValue(kind.toString())
+                .responseJsonPath("$.items[0].claims.length()").equalsValue(1)
+                .responseJsonPath("$.items[0].claims[0].ownerId").equalsValue(adId)
+        }
+    }
+
+    @Test
     fun `Return claimed resources when resource and claim exists`() {
         val adId = testDataCreators.createApplicationDeploymentAndReturnId()
         val resourceId = testDataCreators.createResourceAndReturnId()
@@ -215,7 +303,9 @@ class ResourceControllerTest {
         }
 
         repeat(2) {
-            testDataCreators.claimResource(ownerOfClaim = ownerId)
+            testDataCreators.claimResource(
+                ownerOfClaim = ownerId
+            )
         }
 
         mockMvc.get(Path("/resource?claimedBy={ownerId}&includeClaims=false", ownerId)) {

@@ -20,7 +20,6 @@ data class ApplicationDeploymentDto(
     val environmentName: String,
     val cluster: String,
     val businessGroup: String,
-    val applicationName: String,
     override val createdDate: LocalDateTime,
     override val createdBy: String,
     override val modifiedDate: LocalDateTime,

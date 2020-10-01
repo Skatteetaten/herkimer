@@ -1,7 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.convertValue
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
@@ -19,26 +18,29 @@ class TestDataCreators(
         name = "$prefix-name",
         environmentName = "$prefix-env",
         cluster = "$prefix-cluster",
-        applicationName = "$prefix-whoami",
         businessGroup = "$prefix-aurora"
     ).id.toString()
 
     fun createUserAndReturnId() = principalService.createUser(name = "name", userId = "testid").id.toString()
 
-    fun createResourceAndReturnId(ownerId: String = createApplicationDeploymentAndReturnId()) =
+    fun createResourceAndReturnId(
+        ownerId: String = createApplicationDeploymentAndReturnId(),
+        kind: ResourceKind = ResourceKind.MinioPolicy,
+        name: String = "resourceName"
+    ) =
         resourceService.createResource(
-            name = "resourceName",
-            kind = ResourceKind.MinioPolicy,
+            name = name,
+            kind = kind,
             ownerId = PrincipalUID.fromString(ownerId)
         ).id.toString()
 
     fun claimResource(
         ownerOfClaim: String = createApplicationDeploymentAndReturnId(),
-        resourceId: String = createResourceAndReturnId(ownerOfClaim),
+        resourceId: String = createResourceAndReturnId(ownerId = ownerOfClaim, name = "myName-${Math.random()}"),
         credentials: String = """{"user":"testUser"}"""
     ) = resourceService.createResourceClaim(
         PrincipalUID.fromString(ownerOfClaim),
         resourceId.toLong(),
-        objectMapper.convertValue(credentials)
+        objectMapper.readTree(credentials)
     )
 }

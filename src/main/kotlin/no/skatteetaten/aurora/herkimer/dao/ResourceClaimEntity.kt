@@ -31,12 +31,13 @@ data class ResourceClaimEntity(
 
 @Repository
 interface ResourceClaimRepository : CrudRepository<ResourceClaimEntity, Long> {
-
-    @Query("SELECT id, owner_id, resource_id, credentials, created_date, modified_date, created_by, modified_by " +
-        "FROM resource_claim WHERE resource_id=:resourceId")
-    fun findAllByResourceId(resourceId: Long): List<ResourceClaimEntity>
-
-    @Query("SELECT id, owner_id, resource_id, credentials, created_date, modified_date, created_by, modified_by " +
-        "FROM resource_claim WHERE owner_id=:ownerId")
-    fun findAllByOwnerId(ownerId: PrincipalUID): List<ResourceClaimEntity>
+    @Query(
+        "SELECT id, owner_id, credentials, resource_id, created_date, modified_date, created_by, modified_by " +
+            "FROM resource_claim WHERE owner_id=:ownerId AND resource_id=:resourceId AND credentials=:credentials"
+    )
+    fun findByProperties(
+        ownerId: PrincipalUID,
+        resourceId: Long,
+        credentials: JsonNode
+    ): ResourceClaimEntity
 }
