@@ -10,29 +10,35 @@ import no.skatteetaten.aurora.herkimer.dao.ResourceRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
+sealed class FindParams
+data class ByNameAndKind(val name: String, val resourceKind: ResourceKind) : FindParams()
+data class ByClaimedBy(val claimedBy: PrincipalUID, val name: String?, val resourceKind: ResourceKind?, val onlyMyClaims: Boolean) : FindParams()
+
 @Component
 class ResourceService(
     private val resourceRepository: ResourceRepository,
     private val resourceClaimRepository: ResourceClaimRepository
 ) {
-    fun createResource(name: String, kind: ResourceKind, ownerId: PrincipalUID): ResourceDto =
+    fun createResource(name: String, kind: ResourceKind, ownerId: PrincipalUID, parentId: Int?): ResourceDto =
         runCatching {
             resourceRepository.save(
                 ResourceEntity(
                     kind = kind,
                     name = name,
-                    ownerId = ownerId
+                    ownerId = ownerId,
+                    parentId = parentId
                 )
             )
         }.getOrElseReturnIfDuplicate {
             resourceRepository.findByKindAndNameAndOwnerId(
                 kind = kind,
                 name = name,
-                ownerId = ownerId
+                ownerId = ownerId,
+                parentId = parentId
             )
         }.toDto()
 
-    fun findById(id: Long, includeClaims: Boolean = false) =
+    fun findById(id: Int, includeClaims: Boolean = false) =
         resourceRepository.findByIdOrNull(id)
             ?.let {
                 val claimsOrNull =
@@ -49,6 +55,7 @@ class ResourceService(
                 kind = kind,
                 name = name,
                 ownerId = ownerId,
+                parentId = parentId,
                 createdDate = createdDate,
                 modifiedDate = modifiedDate,
                 createdBy = createdBy,
@@ -57,40 +64,42 @@ class ResourceService(
         )
     }.toDto()
 
-    fun deleteById(id: Long) = resourceRepository.deleteById(id)
+    fun deleteById(id: Int) = resourceRepository.deleteById(id)
 
-    fun findAllClaimedBy(
-        claimedBy: PrincipalUID,
-        name: String?,
-        resourceKind: ResourceKind?,
-        includeClaims: Boolean,
-        onlyMyClaims: Boolean
+    fun findAllResourcesByParams(
+        findParams: FindParams,
+        includeClaims: Boolean
     ): List<ResourceDto> {
-        val resources =
-            resourceRepository.findAllClaimedBy(claimedBy, name ?: "%", resourceKind?.toString() ?: "%")
+        val resources = findParams.run {
+            when (this) {
+                is ByNameAndKind -> resourceRepository.findByKindAndName(resourceKind, name)
+                is ByClaimedBy -> resourceRepository.findAllClaimedBy(claimedBy, name ?: "%", resourceKind?.toString() ?: "%")
+            }
+        }
 
         return when {
             !includeClaims -> resources.map { it.toDto() }
-            !onlyMyClaims -> resources.map { resource ->
+            findParams is ByClaimedBy && findParams.onlyMyClaims -> resources.map { resource ->
+                val onlyMyClaims = resource.claims
+                    .filter { it.ownerId == findParams.claimedBy }
+                    .map(ResourceClaimEntity::toDto)
+
                 resource.toDto(
-                    formattedClaims = resource.claims.map(ResourceClaimEntity::toDto)
+                    formattedClaims = onlyMyClaims
                 )
             }
             else -> {
                 resources.map { resource ->
-                    val onlyMyClaims = resource.claims
-                        .filter { it.ownerId == claimedBy }
-                        .map(ResourceClaimEntity::toDto)
 
                     resource.toDto(
-                        formattedClaims = onlyMyClaims
+                        formattedClaims = resource.claims.map(ResourceClaimEntity::toDto)
                     )
                 }
             }
         }
     }
 
-    fun createResourceClaim(ownerId: PrincipalUID, resourceId: Long, credentials: JsonNode): ResourceClaimDto =
+    fun createResourceClaim(ownerId: PrincipalUID, resourceId: Int, credentials: JsonNode): ResourceClaimDto =
         runCatching {
             resourceClaimRepository.save(
                 ResourceClaimEntity(
@@ -117,7 +126,8 @@ fun ResourceEntity.toDto(formattedClaims: List<ResourceClaimDto>? = null) = Reso
     createdBy = createdBy,
     modifiedDate = assertNotNull(::modifiedDate),
     modifiedBy = modifiedBy,
-    claims = formattedClaims
+    claims = formattedClaims,
+    parentId = parentId
 
 )
 

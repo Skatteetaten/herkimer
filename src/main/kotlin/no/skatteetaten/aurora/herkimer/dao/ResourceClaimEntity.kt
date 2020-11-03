@@ -14,9 +14,9 @@ import java.time.LocalDateTime
 data class ResourceClaimEntity(
 
     @Id
-    val id: Long? = null,
+    val id: Int? = null,
     val ownerId: PrincipalUID,
-    val resourceId: Long,
+    val resourceId: Int,
     val credentials: JsonNode,
 
     @CreatedDate
@@ -30,14 +30,14 @@ data class ResourceClaimEntity(
 )
 
 @Repository
-interface ResourceClaimRepository : CrudRepository<ResourceClaimEntity, Long> {
+interface ResourceClaimRepository : CrudRepository<ResourceClaimEntity, Int> {
     @Query(
         "SELECT id, owner_id, credentials, resource_id, created_date, modified_date, created_by, modified_by " +
             "FROM resource_claim WHERE owner_id=:ownerId AND resource_id=:resourceId AND credentials=:credentials"
     )
     fun findByProperties(
         ownerId: PrincipalUID,
-        resourceId: Long,
+        resourceId: Int,
         credentials: JsonNode
     ): ResourceClaimEntity
 }

@@ -112,6 +112,15 @@ class ResourceControllerTest {
     }
 
     @Test
+    fun `Throw illegalArgument when findingAllResources without queryparams`() {
+        mockMvc.get(Path("/resource")) {
+            status(HttpStatus.BAD_REQUEST)
+            responseJsonPath("$.errors.length()").equalsValue(1)
+            responseJsonPath("$.errors[0].errorMessage").contains("claimedBy is not specified name and resourceKind is required.")
+        }
+    }
+
+    @Test
     fun `Return Resource with claims when there are one in DB`() {
         val ownerId = testDataCreators.createApplicationDeploymentAndReturnId()
         val id = testDataCreators.createResourceAndReturnId(ownerId)

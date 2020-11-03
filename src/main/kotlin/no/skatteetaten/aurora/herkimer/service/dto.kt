@@ -37,10 +37,11 @@ data class UserDto(
 ) : PrincipalBase
 
 data class ResourceDto(
-    val id: Long,
+    val id: Int,
     val name: String,
     val kind: ResourceKind,
     val ownerId: PrincipalUID,
+    val parentId: Int?,
     val claims: List<ResourceClaimDto>? = null,
     val createdDate: LocalDateTime,
     val createdBy: String,
@@ -49,9 +50,9 @@ data class ResourceDto(
 )
 
 data class ResourceClaimDto(
-    val id: Long,
+    val id: Int,
     val ownerId: PrincipalUID,
-    val resourceId: Long,
+    val resourceId: Int,
     val credentials: JsonNode,
     val createdDate: LocalDateTime,
     val modifiedDate: LocalDateTime,

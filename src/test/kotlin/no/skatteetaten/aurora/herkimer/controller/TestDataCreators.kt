@@ -31,7 +31,8 @@ class TestDataCreators(
         resourceService.createResource(
             name = name,
             kind = kind,
-            ownerId = PrincipalUID.fromString(ownerId)
+            ownerId = PrincipalUID.fromString(ownerId),
+            parentId = null
         ).id.toString()
 
     fun claimResource(
@@ -40,7 +41,7 @@ class TestDataCreators(
         credentials: String = """{"user":"testUser"}"""
     ) = resourceService.createResourceClaim(
         PrincipalUID.fromString(ownerOfClaim),
-        resourceId.toLong(),
+        resourceId.toInt(),
         objectMapper.readTree(credentials)
     )
 }

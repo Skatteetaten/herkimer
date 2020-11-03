@@ -13,10 +13,11 @@ import java.time.LocalDateTime
 @Table("resource")
 data class ResourceEntity(
     @Id
-    val id: Long? = null,
+    val id: Int? = null,
     val kind: ResourceKind,
     val name: String,
     val ownerId: PrincipalUID,
+    val parentId: Int?,
     @Column("resource_id")
     val claims: Set<ResourceClaimEntity> = emptySet(),
 
@@ -30,11 +31,11 @@ data class ResourceEntity(
 )
 
 enum class ResourceKind {
-    MinioPolicy, ManagedPostgresDatabase, ManagedOracleSchema, ExternalSchema
+    MinioPolicy, MinioObjectArea, ManagedPostgresDatabase, ManagedOracleSchema, ExternalSchema
 }
 
 @Repository
-interface ResourceRepository : CrudRepository<ResourceEntity, Long> {
+interface ResourceRepository : CrudRepository<ResourceEntity, Int> {
     @Query(
         "SELECT * FROM resource r " +
             "INNER JOIN resource_claim rc on r.id = rc.resource_id " +
@@ -42,5 +43,7 @@ interface ResourceRepository : CrudRepository<ResourceEntity, Long> {
     )
     fun findAllClaimedBy(claimedBy: PrincipalUID, name: String, resourceKind: String): Set<ResourceEntity>
 
-    fun findByKindAndNameAndOwnerId(kind: ResourceKind, name: String, ownerId: PrincipalUID): ResourceEntity
+    fun findByKindAndName(kind: ResourceKind, name: String): Set<ResourceEntity>
+
+    fun findByKindAndNameAndOwnerId(kind: ResourceKind, name: String, ownerId: PrincipalUID, parentId: Int?): ResourceEntity
 }

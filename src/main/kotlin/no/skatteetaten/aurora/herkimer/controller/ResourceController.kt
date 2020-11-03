@@ -3,6 +3,8 @@ package no.skatteetaten.aurora.herkimer.controller
 import com.fasterxml.jackson.databind.JsonNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
+import no.skatteetaten.aurora.herkimer.service.ByClaimedBy
+import no.skatteetaten.aurora.herkimer.service.ByNameAndKind
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import no.skatteetaten.aurora.herkimer.service.ResourceService
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -18,7 +20,8 @@ import org.springframework.web.bind.annotation.RestController
 data class ResourcePayload(
     val name: String,
     val kind: ResourceKind,
-    val ownerId: PrincipalUID
+    val ownerId: PrincipalUID,
+    val parentId: Int? = null
 )
 
 data class ResourceClaimPayload(
@@ -41,7 +44,8 @@ class ResourceController(
             resourceService.createResource(
                 name = name,
                 kind = kind,
-                ownerId = existingOwner.id
+                ownerId = existingOwner.id,
+                parentId = parentId
             )
         }.toResource()
             .okResponse()
@@ -49,7 +53,7 @@ class ResourceController(
 
     @PostMapping("/{resourceId}/claims")
     fun createClaimforResource(
-        @PathVariable resourceId: Long,
+        @PathVariable resourceId: Int,
         @RequestBody payload: ResourceClaimPayload
     ): AuroraResponse<ResourceClaim> {
 
@@ -67,20 +71,29 @@ class ResourceController(
     }
 
     @GetMapping
-    fun findAllClaimedBy(
-        @RequestParam(required = true) claimedBy: PrincipalUID,
+    fun findAllResourcesByFilters(
+        @RequestParam(required = false) claimedBy: PrincipalUID?,
         @RequestParam(required = false, defaultValue = "true") includeClaims: Boolean,
         @RequestParam(required = false, defaultValue = "true") onlyMyClaims: Boolean,
         @RequestParam(required = false) name: String?,
         @RequestParam(required = false) resourceKind: ResourceKind?
     ): AuroraResponse<Resource> {
-        return if (principalService.findById(claimedBy) == null) AuroraResponse()
-            else resourceService.findAllClaimedBy(claimedBy, name, resourceKind, includeClaims, onlyMyClaims).toResources().okResponse()
+        if (claimedBy != null && principalService.findById(claimedBy) == null) return AuroraResponse()
+
+        val params = when {
+            claimedBy != null -> ByClaimedBy(claimedBy, name, resourceKind, onlyMyClaims)
+            name != null && resourceKind != null -> ByNameAndKind(name, resourceKind)
+            else -> throw IllegalArgumentException("When claimedBy is not specified name and resourceKind is required.")
+        }
+
+        return resourceService.findAllResourcesByParams(params, includeClaims)
+            .toResources()
+            .okResponse()
     }
 
     @GetMapping("/{id}")
     fun findById(
-        @PathVariable id: Long,
+        @PathVariable id: Int,
         @RequestParam(required = false, defaultValue = "false") includeClaims: Boolean
     ) =
         resourceService.findById(id, includeClaims)?.toResource()?.okResponse()
@@ -88,7 +101,7 @@ class ResourceController(
 
     @PutMapping("/{id}")
     fun update(
-        @PathVariable id: Long,
+        @PathVariable id: Int,
         @RequestBody payload: ResourcePayload
     ): AuroraResponse<Resource> {
         val existingResource = resourceService.findById(id)
@@ -111,5 +124,5 @@ class ResourceController(
     }
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Long) = resourceService.deleteById(id)
+    fun delete(@PathVariable id: Int) = resourceService.deleteById(id)
 }
