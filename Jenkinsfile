@@ -12,11 +12,6 @@ def overrides = [
     chatRoom                   : "#aos-notifications",
     versionStrategy            : [
         [branch: 'master', versionHint: '0']
-    ],
-    github                     : [
-        enabled: true,
-        push   : env.BRANCH_NAME == "master",
-        repoUrl: "https://github.com/Skatteetaten/herkimer.git"
     ]
 ]
 
