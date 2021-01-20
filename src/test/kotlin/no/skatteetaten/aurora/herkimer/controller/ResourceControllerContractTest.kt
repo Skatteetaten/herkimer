@@ -99,7 +99,8 @@ class ResourceControllerContractTest {
             headers = HttpHeaders().contentTypeJson(),
             body = ResourceClaimPayload(
                 ownerId = PrincipalUID.fromString(adId),
-                credentials = credentials
+                credentials = credentials,
+                name = "ADMIN"
             )
         ) {
             statusIsOk()

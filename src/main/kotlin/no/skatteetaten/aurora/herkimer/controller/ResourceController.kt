@@ -27,7 +27,8 @@ data class ResourcePayload(
 
 data class ResourceClaimPayload(
     val ownerId: PrincipalUID,
-    val credentials: JsonNode
+    val credentials: JsonNode,
+    val name: String
 )
 
 @RestController
@@ -70,7 +71,7 @@ class ResourceController(
             "Credentials has to be JSON object. Arrays are not allowed."
         }
 
-        return resourceService.createResourceClaim(payload.ownerId, resourceId, payload.credentials)
+        return resourceService.createResourceClaim(payload.ownerId, resourceId, payload.credentials, payload.name)
             .toResource()
             .okResponse()
     }

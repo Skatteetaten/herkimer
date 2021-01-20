@@ -9,11 +9,6 @@ spring:
         active: local
     application:
         name: herkimer
-    datasource:
-        url: jdbc:postgresql://localhost:${DATABASE_PORT:5432}/herkimer
-        username: ${DATABASE_USER:postgres}
-        password: ${DATABASE_PASSWORD:postgres}
-        driver-class-name: org.postgresql.Driver
 
 logging:
     level:
@@ -33,6 +28,11 @@ aurora:
 ---
 spring:
     profiles: local
+    datasource:
+        url: jdbc:postgresql://localhost:${DATABASE_PORT:5432}/herkimer
+        username: ${DATABASE_USER:postgres}
+        password: ${DATABASE_PASSWORD:postgres}
+        driver-class-name: org.postgresql.Driver
 
 aurora:
     authentication:

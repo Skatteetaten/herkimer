@@ -40,10 +40,12 @@ class TestDataCreators(
     fun claimResource(
         ownerOfClaim: String = createApplicationDeploymentAndReturnId(),
         resourceId: String = createResourceAndReturnId(ownerId = ownerOfClaim, name = "myName-${Math.random()}"),
-        credentials: ObjectNode = objectMapper.readTree("""{"user":"testUser"}""") as ObjectNode
+        credentials: ObjectNode = objectMapper.readTree("""{"user":"testUser"}""") as ObjectNode,
+        name: String = "READ"
     ) = resourceService.createResourceClaim(
-        PrincipalUID.fromString(ownerOfClaim),
-        resourceId.toInt(),
-        credentials
+        ownerId = PrincipalUID.fromString(ownerOfClaim),
+        resourceId = resourceId.toInt(),
+        credentials = credentials,
+        name = name
     )
 }

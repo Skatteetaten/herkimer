@@ -52,6 +52,7 @@ data class ResourceDto(
 data class ResourceClaimDto(
     val id: Int,
     val ownerId: PrincipalUID,
+    val name: String,
     val resourceId: Int,
     val credentials: ObjectNode,
     val createdDate: LocalDateTime,

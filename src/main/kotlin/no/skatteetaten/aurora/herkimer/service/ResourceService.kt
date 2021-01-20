@@ -108,20 +108,27 @@ class ResourceService(
         }
     }
 
-    fun createResourceClaim(ownerId: PrincipalUID, resourceId: Int, credentials: ObjectNode): ResourceClaimDto =
+    fun createResourceClaim(
+        ownerId: PrincipalUID,
+        resourceId: Int,
+        credentials: ObjectNode,
+        name: String
+    ): ResourceClaimDto =
         runCatching {
             resourceClaimRepository.save(
                 ResourceClaimEntity(
                     ownerId = ownerId,
                     resourceId = resourceId,
-                    credentials = credentials
+                    credentials = credentials,
+                    name = name
                 )
             )
         }.getOrElseReturnIfDuplicate {
             resourceClaimRepository.findByProperties(
                 ownerId = ownerId,
                 resourceId = resourceId,
-                credentials = credentials
+                credentials = credentials,
+                name = name
             )
         }.toDto()
 }
@@ -144,6 +151,7 @@ fun ResourceClaimEntity.toDto() =
     ResourceClaimDto(
         id = assertNotNull(::id),
         ownerId = ownerId,
+        name = name,
         resourceId = resourceId,
         credentials = credentials,
         createdDate = assertNotNull(::createdDate),

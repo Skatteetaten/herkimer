@@ -17,6 +17,7 @@ data class ResourceClaimEntity(
     val id: Int? = null,
     val ownerId: PrincipalUID,
     val resourceId: Int,
+    val name: String,
     val credentials: ObjectNode,
 
     @CreatedDate
@@ -32,12 +33,13 @@ data class ResourceClaimEntity(
 @Repository
 interface ResourceClaimRepository : CrudRepository<ResourceClaimEntity, Int> {
     @Query(
-        "SELECT id, owner_id, credentials, resource_id, created_date, modified_date, created_by, modified_by " +
-            "FROM resource_claim WHERE owner_id=:ownerId AND resource_id=:resourceId AND credentials=:credentials"
+        "SELECT id, owner_id, credentials, resource_id, name, created_date, modified_date, created_by, modified_by " +
+            "FROM resource_claim WHERE owner_id=:ownerId AND resource_id=:resourceId AND credentials=:credentials and name=:name"
     )
     fun findByProperties(
         ownerId: PrincipalUID,
         resourceId: Int,
-        credentials: ObjectNode
+        credentials: ObjectNode,
+        name: String
     ): ResourceClaimEntity
 }

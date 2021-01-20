@@ -107,7 +107,8 @@ class ResourceControllerTest {
             headers = HttpHeaders().contentTypeJson(),
             body = ResourceClaimPayload(
                 ownerId = PrincipalUID.fromString(ownerId),
-                credentials = mapper.readTree("""{}""")
+                credentials = mapper.readTree("""{}"""),
+                name = "ADMIN"
             )
         ) {
             status(HttpStatus.BAD_REQUEST)
@@ -125,7 +126,8 @@ class ResourceControllerTest {
             headers = HttpHeaders().contentTypeJson(),
             body = ResourceClaimPayload(
                 ownerId = ownerId,
-                credentials = mapper.readTree("""{}""")
+                credentials = mapper.readTree("""{}"""),
+                name = "ADMIN"
             )
         ) {
             status(HttpStatus.BAD_REQUEST)
@@ -170,14 +172,16 @@ class ResourceControllerTest {
         val resourceId = testDataCreators.createResourceAndReturnId(ownerId = adId)
         val credentials = mapper.readTree("""{"name":"tull"}""")
         val resourceClaimPayload = ResourceClaimPayload(
-            PrincipalUID.fromString(adId),
-            credentials
+            ownerId = PrincipalUID.fromString(adId),
+            credentials = credentials,
+            name = "ADMIN"
         )
 
         val initialClaim = testDataCreators.claimResource(
-            adId,
-            resourceId,
-            credentials as ObjectNode
+            ownerOfClaim = adId,
+            resourceId = resourceId,
+            credentials = credentials as ObjectNode,
+            name = "ADMIN"
         )
 
         mockMvc.post(
