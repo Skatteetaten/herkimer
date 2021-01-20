@@ -1,6 +1,6 @@
 package no.skatteetaten.aurora.herkimer.service
 
-import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceClaimEntity
 import no.skatteetaten.aurora.herkimer.dao.ResourceClaimRepository
@@ -12,7 +12,12 @@ import org.springframework.stereotype.Component
 
 sealed class FindParams
 data class ByNameAndKind(val name: String, val resourceKind: ResourceKind) : FindParams()
-data class ByClaimedBy(val claimedBy: PrincipalUID, val name: String?, val resourceKind: ResourceKind?, val onlyMyClaims: Boolean) : FindParams()
+data class ByClaimedBy(
+    val claimedBy: PrincipalUID,
+    val name: String?,
+    val resourceKind: ResourceKind?,
+    val onlyMyClaims: Boolean
+) : FindParams()
 
 @Component
 class ResourceService(
@@ -73,7 +78,11 @@ class ResourceService(
         val resources = findParams.run {
             when (this) {
                 is ByNameAndKind -> resourceRepository.findByKindAndName(resourceKind, name)
-                is ByClaimedBy -> resourceRepository.findAllClaimedBy(claimedBy, name ?: "%", resourceKind?.toString() ?: "%")
+                is ByClaimedBy -> resourceRepository.findAllClaimedBy(
+                    claimedBy,
+                    name ?: "%",
+                    resourceKind?.toString() ?: "%"
+                )
             }
         }
 
@@ -99,7 +108,7 @@ class ResourceService(
         }
     }
 
-    fun createResourceClaim(ownerId: PrincipalUID, resourceId: Int, credentials: JsonNode): ResourceClaimDto =
+    fun createResourceClaim(ownerId: PrincipalUID, resourceId: Int, credentials: ObjectNode): ResourceClaimDto =
         runCatching {
             resourceClaimRepository.save(
                 ResourceClaimEntity(

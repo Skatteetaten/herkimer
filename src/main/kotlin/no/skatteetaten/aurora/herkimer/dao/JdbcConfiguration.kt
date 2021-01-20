@@ -19,8 +19,8 @@ class JdbcConfiguration(
     override fun jdbcCustomConversions() =
         JdbcCustomConversions(
             listOf(
-                StringToJsonNode(objectMapper),
-                JsonNodeToString(objectMapper),
+                StringToObjectNode(objectMapper),
+                ObjectNodeToString(objectMapper),
                 PrincipalUIDToString(),
                 StringToPrincipalUID()
             )

@@ -1,11 +1,11 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import com.fasterxml.jackson.module.kotlin.convertValue
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.mockmvc.extensions.Path
+import no.skatteetaten.aurora.mockmvc.extensions.TestObjectMapperConfigurer
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.get
 import no.skatteetaten.aurora.mockmvc.extensions.post
@@ -37,6 +37,8 @@ class ResourceControllerTest {
 
     @Autowired
     private lateinit var flyway: Flyway
+
+    private val mapper = TestObjectMapperConfigurer.objectMapper
 
     @BeforeEach
     fun beforeEach() {
@@ -105,7 +107,7 @@ class ResourceControllerTest {
             headers = HttpHeaders().contentTypeJson(),
             body = ResourceClaimPayload(
                 ownerId = PrincipalUID.fromString(ownerId),
-                credentials = jacksonObjectMapper().convertValue("""{}""")
+                credentials = mapper.readTree("""{}""")
             )
         ) {
             status(HttpStatus.BAD_REQUEST)
@@ -123,7 +125,7 @@ class ResourceControllerTest {
             headers = HttpHeaders().contentTypeJson(),
             body = ResourceClaimPayload(
                 ownerId = ownerId,
-                credentials = jacksonObjectMapper().convertValue("""{}""")
+                credentials = mapper.readTree("""{}""")
             )
         ) {
             status(HttpStatus.BAD_REQUEST)
@@ -166,16 +168,16 @@ class ResourceControllerTest {
         val adId = testDataCreators.createApplicationDeploymentAndReturnId()
 
         val resourceId = testDataCreators.createResourceAndReturnId(ownerId = adId)
-        val credentials = """{"name":"tull"}"""
+        val credentials = mapper.readTree("""{"name":"tull"}""")
         val resourceClaimPayload = ResourceClaimPayload(
             PrincipalUID.fromString(adId),
-            jacksonObjectMapper().readTree(credentials)
+            credentials
         )
 
         val initialClaim = testDataCreators.claimResource(
             adId,
             resourceId,
-            credentials
+            credentials as ObjectNode
         )
 
         mockMvc.post(

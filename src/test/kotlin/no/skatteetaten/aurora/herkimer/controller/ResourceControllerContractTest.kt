@@ -1,11 +1,10 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import com.fasterxml.jackson.module.kotlin.convertValue
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.mockmvc.extensions.Path
+import no.skatteetaten.aurora.mockmvc.extensions.TestObjectMapperConfigurer
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.delete
 import no.skatteetaten.aurora.mockmvc.extensions.get
@@ -37,6 +36,8 @@ class ResourceControllerContractTest {
 
     @Autowired
     private lateinit var flyway: Flyway
+
+    private val mapper = TestObjectMapperConfigurer.objectMapper
 
     @BeforeEach
     fun beforeEach() {
@@ -91,20 +92,20 @@ class ResourceControllerContractTest {
         repeat(5) {
             testDataCreators.createResourceAndReturnId()
         }
-        val credentials = """{"password":"superPassword"}"""
+        val credentials = mapper.readTree("""{"password":"superPassword"}""")
 
         mockMvc.post(
             path = Path("/resource/{id}/claims", resourceId),
             headers = HttpHeaders().contentTypeJson(),
             body = ResourceClaimPayload(
                 ownerId = PrincipalUID.fromString(adId),
-                credentials = jacksonObjectMapper().convertValue(credentials)
+                credentials = credentials
             )
         ) {
             statusIsOk()
                 .responseJsonPath("$.count").equalsValue(1)
                 .responseJsonPath("$.success").isTrue()
-                .responseJsonPath("$.items[0].credentials").equalsValue(credentials)
+                .responseJsonPath("$.items[0].credentials").equalsObject(credentials)
         }
     }
 

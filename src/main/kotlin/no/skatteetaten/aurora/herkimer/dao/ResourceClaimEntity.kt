@@ -1,6 +1,6 @@
 package no.skatteetaten.aurora.herkimer.dao
 
-import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
@@ -17,7 +17,7 @@ data class ResourceClaimEntity(
     val id: Int? = null,
     val ownerId: PrincipalUID,
     val resourceId: Int,
-    val credentials: JsonNode,
+    val credentials: ObjectNode,
 
     @CreatedDate
     val createdDate: LocalDateTime? = null,
@@ -38,6 +38,6 @@ interface ResourceClaimRepository : CrudRepository<ResourceClaimEntity, Int> {
     fun findByProperties(
         ownerId: PrincipalUID,
         resourceId: Int,
-        credentials: JsonNode
+        credentials: ObjectNode
     ): ResourceClaimEntity
 }

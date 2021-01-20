@@ -1,6 +1,7 @@
 package no.skatteetaten.aurora.herkimer.controller
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.herkimer.service.ByClaimedBy
@@ -63,6 +64,10 @@ class ResourceController(
 
         requireNotNull(resourceService.findById(resourceId)) {
             "Cannot create claim. Resource with id=$resourceId does not exist."
+        }
+
+        require(payload.credentials is ObjectNode) {
+            "Credentials has to be JSON object. Arrays are not allowed."
         }
 
         return resourceService.createResourceClaim(payload.ownerId, resourceId, payload.credentials)

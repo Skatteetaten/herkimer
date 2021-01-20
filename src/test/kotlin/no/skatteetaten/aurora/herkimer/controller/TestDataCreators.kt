@@ -1,6 +1,7 @@
 package no.skatteetaten.aurora.herkimer.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
@@ -14,12 +15,13 @@ class TestDataCreators(
     private val objectMapper: ObjectMapper
 ) {
 
-    fun createApplicationDeploymentAndReturnId(prefix: String = Math.random().toString()) = principalService.createApplicationDeployment(
-        name = "$prefix-name",
-        environmentName = "$prefix-env",
-        cluster = "$prefix-cluster",
-        businessGroup = "$prefix-aurora"
-    ).id.toString()
+    fun createApplicationDeploymentAndReturnId(prefix: String = Math.random().toString()) =
+        principalService.createApplicationDeployment(
+            name = "$prefix-name",
+            environmentName = "$prefix-env",
+            cluster = "$prefix-cluster",
+            businessGroup = "$prefix-aurora"
+        ).id.toString()
 
     fun createUserAndReturnId() = principalService.createUser(name = "name", userId = "testid").id.toString()
 
@@ -38,10 +40,10 @@ class TestDataCreators(
     fun claimResource(
         ownerOfClaim: String = createApplicationDeploymentAndReturnId(),
         resourceId: String = createResourceAndReturnId(ownerId = ownerOfClaim, name = "myName-${Math.random()}"),
-        credentials: String = """{"user":"testUser"}"""
+        credentials: ObjectNode = objectMapper.readTree("""{"user":"testUser"}""") as ObjectNode
     ) = resourceService.createResourceClaim(
         PrincipalUID.fromString(ownerOfClaim),
         resourceId.toInt(),
-        objectMapper.readTree(credentials)
+        credentials
     )
 }

@@ -1,9 +1,9 @@
 package no.skatteetaten.aurora.herkimer.controller
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.JsonNode
-import no.skatteetaten.aurora.herkimer.dao.ResourceKind
+import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
+import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.herkimer.service.ApplicationDeploymentDto
 import no.skatteetaten.aurora.herkimer.service.ResourceClaimDto
 import no.skatteetaten.aurora.herkimer.service.ResourceDto
@@ -57,7 +57,7 @@ data class ResourceClaim(
     override val id: String,
     val ownerId: PrincipalUID,
     val resourceId: Int,
-    val credentials: JsonNode,
+    val credentials: ObjectNode,
     override val createdDate: LocalDateTime,
     override val modifiedDate: LocalDateTime,
     override val createdBy: String,

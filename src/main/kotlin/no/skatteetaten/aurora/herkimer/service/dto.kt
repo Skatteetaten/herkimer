@@ -1,8 +1,8 @@
 package no.skatteetaten.aurora.herkimer.service
 
-import com.fasterxml.jackson.databind.JsonNode
-import no.skatteetaten.aurora.herkimer.dao.ResourceKind
+import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
+import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import java.time.LocalDateTime
 
 interface PrincipalBase {
@@ -53,7 +53,7 @@ data class ResourceClaimDto(
     val id: Int,
     val ownerId: PrincipalUID,
     val resourceId: Int,
-    val credentials: JsonNode,
+    val credentials: ObjectNode,
     val createdDate: LocalDateTime,
     val modifiedDate: LocalDateTime,
     val createdBy: String,
