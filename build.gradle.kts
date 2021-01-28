@@ -10,7 +10,8 @@ plugins {
     id("com.github.ben-manes.versions") version "0.28.0"
     id("se.patrikerdes.use-latest-versions") version "0.2.13"
 
-    id("no.skatteetaten.gradle.aurora") version "3.6.4"
+    id("no.skatteetaten.gradle.aurora") version "3.6.6"
+    id("org.springframework.cloud.contract")
 }
 
 dependencies {
