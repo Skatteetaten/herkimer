@@ -1,5 +1,14 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
@@ -8,15 +17,6 @@ import no.skatteetaten.aurora.herkimer.service.ByClaimedBy
 import no.skatteetaten.aurora.herkimer.service.ByNameAndKind
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import no.skatteetaten.aurora.herkimer.service.ResourceService
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.PutMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 
 data class ResourcePayload(
     val name: String,
@@ -82,7 +82,8 @@ class ResourceController(
         @RequestParam(required = false, defaultValue = "true") includeClaims: Boolean,
         @RequestParam(required = false, defaultValue = "true") onlyMyClaims: Boolean,
         @RequestParam(required = false) name: String?,
-        @RequestParam(required = false) resourceKind: ResourceKind?
+        @RequestParam(required = false) resourceKind: ResourceKind?,
+        @RequestParam(defaultValue = "false") includeDeactivated: Boolean
     ): AuroraResponse<Resource> {
         if (claimedBy != null && principalService.findById(claimedBy) == null) return AuroraResponse()
 
@@ -92,7 +93,7 @@ class ResourceController(
             else -> throw IllegalArgumentException("When claimedBy is not specified name and resourceKind is required.")
         }
 
-        return resourceService.findAllResourcesByParams(params, includeClaims)
+        return resourceService.findAllResourcesByParams(params, includeClaims, includeDeactivated)
             .toResources()
             .okResponse()
     }
@@ -129,6 +130,18 @@ class ResourceController(
         }
     }
 
-    @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Int) = resourceService.deleteById(id)
+    @PatchMapping("/{id}")
+    fun updateResource(
+        @PathVariable id: Int,
+        @RequestBody updateRequest: UpdateResourcePayload
+    ): AuroraResponse<Resource> {
+        return resourceService.updateActive(id, updateRequest.active)
+            ?.toResource()
+            ?.okResponse()
+            ?: throw NoSuchResourceException("Could not find Resource with id=$id")
+    }
 }
+
+data class UpdateResourcePayload(
+    val active: Boolean
+)

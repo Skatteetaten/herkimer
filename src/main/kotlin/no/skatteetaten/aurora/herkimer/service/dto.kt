@@ -46,7 +46,9 @@ data class ResourceDto(
     val createdDate: LocalDateTime,
     val createdBy: String,
     val modifiedDate: LocalDateTime,
-    val modifiedBy: String
+    val modifiedBy: String,
+    val active: Boolean,
+    val setToCooldownAt: LocalDateTime?
 )
 
 data class ResourceClaimDto(

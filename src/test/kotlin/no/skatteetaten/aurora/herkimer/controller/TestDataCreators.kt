@@ -7,6 +7,7 @@ import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import no.skatteetaten.aurora.herkimer.service.ResourceService
 import org.springframework.stereotype.Component
+import no.skatteetaten.aurora.herkimer.service.ResourceDto
 
 @Component
 class TestDataCreators(
@@ -48,4 +49,8 @@ class TestDataCreators(
         credentials = credentials,
         name = name
     )
+
+    fun deactivateResourceById(id: String): ResourceDto? {
+        return resourceService.updateActive(id = id.toInt(), active = false)
+    }
 }

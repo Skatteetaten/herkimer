@@ -107,6 +107,8 @@ data class Resource(
     val ownerId: PrincipalUID,
     val parentId: Int? = null,
     val claims: List<ResourceClaim>? = null,
+    val active: Boolean,
+    val setToCooldownAt: LocalDateTime?,
     override val createdDate: LocalDateTime,
     override val modifiedDate: LocalDateTime,
     override val createdBy: String,
@@ -124,7 +126,9 @@ fun ResourceDto.toResource() =
         modifiedDate = modifiedDate,
         createdBy = createdBy,
         modifiedBy = modifiedBy,
-        claims = claims?.toResources()
+        claims = claims?.toResources(),
+        active = active,
+        setToCooldownAt = setToCooldownAt
     )
 
 @JvmName("applicationDeploymentsToResources")

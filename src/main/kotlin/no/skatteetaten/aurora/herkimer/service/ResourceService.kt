@@ -1,5 +1,8 @@
 package no.skatteetaten.aurora.herkimer.service
 
+import java.time.LocalDateTime
+import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Component
 import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceClaimEntity
@@ -7,8 +10,6 @@ import no.skatteetaten.aurora.herkimer.dao.ResourceClaimRepository
 import no.skatteetaten.aurora.herkimer.dao.ResourceEntity
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.herkimer.dao.ResourceRepository
-import org.springframework.data.repository.findByIdOrNull
-import org.springframework.stereotype.Component
 
 sealed class FindParams
 data class ByNameAndKind(val name: String, val resourceKind: ResourceKind) : FindParams()
@@ -69,21 +70,38 @@ class ResourceService(
         )
     }.toDto()
 
-    fun deleteById(id: Int) = resourceRepository.deleteById(id)
+    fun updateActive(id: Int, active: Boolean): ResourceDto? {
+        if (active) {
+            resourceRepository.activateResourceById(id)
+        } else {
+            resourceRepository.deactiveResourceById(id, LocalDateTime.now())
+        }
+
+        return findById(id)
+    }
 
     fun findAllResourcesByParams(
         findParams: FindParams,
-        includeClaims: Boolean
+        includeClaims: Boolean,
+        includeDeactivated: Boolean
     ): List<ResourceDto> {
         val resources = findParams.run {
             when (this) {
-                is ByNameAndKind -> resourceRepository.findByKindAndName(resourceKind, name)
-                is ByClaimedBy -> resourceRepository.findAllClaimedBy(
-                    claimedBy,
-                    name ?: "%",
-                    resourceKind?.toString() ?: "%"
-                )
+                is ByNameAndKind -> {
+                    resourceRepository.findByKindAndName(resourceKind, name)
+                }
+                is ByClaimedBy -> {
+                    resourceRepository.findAllClaimedBy(
+                        claimedBy,
+                        name ?: "%",
+                        resourceKind?.toString() ?: "%"
+                    )
+                }
             }
+        }.let { resources ->
+            if (!includeDeactivated) {
+                resources.filter { it.active }
+            } else resources
         }
 
         return when {
@@ -143,8 +161,9 @@ fun ResourceEntity.toDto(formattedClaims: List<ResourceClaimDto>? = null) = Reso
     modifiedDate = assertNotNull(::modifiedDate),
     modifiedBy = modifiedBy,
     claims = formattedClaims,
-    parentId = parentId
-
+    parentId = parentId,
+    active = active,
+    setToCooldownAt = setToCooldownAt
 )
 
 fun ResourceClaimEntity.toDto() =

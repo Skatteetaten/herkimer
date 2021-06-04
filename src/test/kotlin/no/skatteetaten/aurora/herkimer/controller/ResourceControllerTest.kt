@@ -1,18 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import com.fasterxml.jackson.databind.node.ObjectNode
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase
-import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
-import no.skatteetaten.aurora.herkimer.dao.ResourceKind
-import no.skatteetaten.aurora.mockmvc.extensions.Path
-import no.skatteetaten.aurora.mockmvc.extensions.TestObjectMapperConfigurer
-import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
-import no.skatteetaten.aurora.mockmvc.extensions.get
-import no.skatteetaten.aurora.mockmvc.extensions.post
-import no.skatteetaten.aurora.mockmvc.extensions.put
-import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
-import no.skatteetaten.aurora.mockmvc.extensions.status
-import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
+import java.util.UUID
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -22,7 +10,21 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
-import java.util.UUID
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import com.fasterxml.jackson.databind.node.ObjectNode
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
+import no.skatteetaten.aurora.herkimer.dao.ResourceKind
+import no.skatteetaten.aurora.mockmvc.extensions.Path
+import no.skatteetaten.aurora.mockmvc.extensions.TestObjectMapperConfigurer
+import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
+import no.skatteetaten.aurora.mockmvc.extensions.get
+import no.skatteetaten.aurora.mockmvc.extensions.patch
+import no.skatteetaten.aurora.mockmvc.extensions.post
+import no.skatteetaten.aurora.mockmvc.extensions.put
+import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
+import no.skatteetaten.aurora.mockmvc.extensions.status
+import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
 
 @AutoConfigureEmbeddedDatabase
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
@@ -329,6 +331,70 @@ class ResourceControllerTest {
             status(HttpStatus.BAD_REQUEST)
                 .responseJsonPath("$.count").equalsValue(1)
                 .responseJsonPath("$.errors[0].errorMessage").contains(id)
+        }
+    }
+
+    @Test
+    fun `Get resource When it is deactivated Then return HTTP_OK with no resources`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val id = testDataCreators.createResourceAndReturnId(adId)
+        testDataCreators.claimResource(ownerOfClaim = adId, resourceId = id)
+        testDataCreators.deactivateResourceById(id)
+
+        mockMvc.get(
+            path = Path("/resource?claimedBy={id}", adId)
+        ) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(0)
+                .responseJsonPath("$.success").isTrue()
+        }
+    }
+
+    @Test
+    fun `Get resource When it is deactivated Then return HTTP_OK with the resource`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+        val id = testDataCreators.createResourceAndReturnId(adId)
+        testDataCreators.claimResource(ownerOfClaim = adId, resourceId = id)
+        testDataCreators.deactivateResourceById(id)
+
+        mockMvc.get(
+            path = Path("/resource?claimedBy={id}&includeDeactivated=true", adId)
+        ) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.success").isTrue()
+                .responseJsonPath("$.items[0].active").isFalse()
+        }
+    }
+
+    @Test
+    fun `PATCH resource to active=true When it is deactivated return HTTP_OK`() {
+        val id = testDataCreators.createResourceAndReturnId()
+        testDataCreators.deactivateResourceById(id)
+
+        mockMvc.patch(
+            path = Path("/resource/{id}", id),
+            headers = HttpHeaders().contentTypeJson(),
+            body = UpdateResourcePayload(active = true)
+        ) {
+            statusIsOk()
+            responseJsonPath("$.count").equalsValue(1)
+            responseJsonPath("$.success").isTrue()
+            responseJsonPath("$.items[0].id").equalsValue(id)
+            responseJsonPath("$.items[0].active").isTrue()
+
+            results.andExpect(jsonPath("$.items[0].setToCooldownAt").doesNotExist())
+        }
+    }
+
+    @Test
+    fun `PATCH resource When it does not exist return HTTP_NOT_FOUND`() {
+        mockMvc.patch(
+            path = Path("/resource/{id}", "90000"),
+            headers = HttpHeaders().contentTypeJson(),
+            body = UpdateResourcePayload(active = false)
+        ) {
+            status(HttpStatus.NOT_FOUND)
         }
     }
 }

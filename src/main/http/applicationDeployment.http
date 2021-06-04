@@ -5,8 +5,7 @@ Content-Type: application/json
   "name": "kris3",
   "environmentName": "dev",
   "cluster": "utv",
-  "businessGroup": "aurora",
-  "applicationName": "tulleAppen"
+  "businessGroup": "aurora"
 }
 
 ###

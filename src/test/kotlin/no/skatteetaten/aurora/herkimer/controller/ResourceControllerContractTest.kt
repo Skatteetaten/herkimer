@@ -1,17 +1,5 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase
-import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
-import no.skatteetaten.aurora.herkimer.dao.ResourceKind
-import no.skatteetaten.aurora.mockmvc.extensions.Path
-import no.skatteetaten.aurora.mockmvc.extensions.TestObjectMapperConfigurer
-import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
-import no.skatteetaten.aurora.mockmvc.extensions.delete
-import no.skatteetaten.aurora.mockmvc.extensions.get
-import no.skatteetaten.aurora.mockmvc.extensions.post
-import no.skatteetaten.aurora.mockmvc.extensions.put
-import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
-import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -21,6 +9,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.servlet.MockMvc
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
+import no.skatteetaten.aurora.herkimer.dao.ResourceKind
+import no.skatteetaten.aurora.mockmvc.extensions.Path
+import no.skatteetaten.aurora.mockmvc.extensions.TestObjectMapperConfigurer
+import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
+import no.skatteetaten.aurora.mockmvc.extensions.get
+import no.skatteetaten.aurora.mockmvc.extensions.patch
+import no.skatteetaten.aurora.mockmvc.extensions.post
+import no.skatteetaten.aurora.mockmvc.extensions.put
+import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
+import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
 
 @AutoConfigureEmbeddedDatabase
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
@@ -111,15 +111,6 @@ class ResourceControllerContractTest {
     }
 
     @Test
-    fun `Delete Resource When it exists Then return HTTP_OK`() {
-        val id = testDataCreators.createResourceAndReturnId()
-
-        mockMvc.delete(Path("/resource/{id}", id)) {
-            statusIsOk()
-        }
-    }
-
-    @Test
     fun `Update Resource When it exists Then return HTTP_OK and updated resource`() {
         val id = testDataCreators.createResourceAndReturnId()
         val newOwnerId = testDataCreators.createApplicationDeploymentAndReturnId()
@@ -142,6 +133,30 @@ class ResourceControllerContractTest {
                 .responseJsonPath("$.items[0].name").equalsValue("newName")
                 .responseJsonPath("$.items[0].kind").equalsValue("ManagedOracleSchema")
                 .responseJsonPath("$.items[0].ownerId").equalsValue(newOwnerId)
+        }
+    }
+
+    @Test
+    fun `PATCH Resource with active=false When it exists Then return HTTP_OK and updated resource`() {
+        mockLocalDateTimeToNow { expectedTime ->
+            val id = testDataCreators.createResourceAndReturnId()
+
+            val patchedResource = UpdateResourcePayload(
+                active = false
+            )
+
+            mockMvc.patch(
+                path = Path("/resource/{id}", id),
+                headers = HttpHeaders().contentTypeJson(),
+                body = patchedResource
+            ) {
+                statusIsOk()
+                    .responseJsonPath("$.count").equalsValue(1)
+                    .responseJsonPath("$.success").isTrue()
+                    .responseJsonPath("$.items[0].id").equalsValue(id)
+                    .responseJsonPath("$.items[0].active").equalsValue(false)
+                    .responseJsonPath("$.items[0].setToCooldownAt").equalsValue(expectedTime.toString())
+            }
         }
     }
 }
