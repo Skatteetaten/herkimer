@@ -168,6 +168,37 @@ class ResourceControllerTest {
     }
 
     @Test
+    fun `Should be able to create resource when same are in cooldown`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+
+        val resourcePayload = ResourcePayload(
+            name = "minio resource",
+            kind = ResourceKind.MinioPolicy,
+            ownerId = PrincipalUID.fromString(adId)
+        )
+        val firstInsertedResourceId = testDataCreators.createResourceAndReturnId(
+            ownerId = adId,
+            kind = resourcePayload.kind,
+            name = resourcePayload.name
+        )
+
+        testDataCreators.deactivateResourceById(firstInsertedResourceId)
+
+        mockMvc.post(
+            path = Path("/resource"),
+            headers = HttpHeaders().contentTypeJson(),
+            body = resourcePayload
+        ) {
+            statusIsOk()
+            responseJsonPath("$.success").isTrue()
+            responseJsonPath("$.items[0].name").equalsValue(resourcePayload.name)
+            responseJsonPath("$.items[0].kind").equalsValue(resourcePayload.kind.toString())
+            responseJsonPath("$.items[0].ownerId").equalsValue(resourcePayload.ownerId.toString())
+            responseJsonPath("$.items[0].id").equalsValue(firstInsertedResourceId.toInt() + 1)
+        }
+    }
+
+    @Test
     fun `ResourceClaim creation should be idempotent`() {
         val adId = testDataCreators.createApplicationDeploymentAndReturnId()
 
