@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceKind
 import no.skatteetaten.aurora.mockmvc.extensions.Path
@@ -26,7 +27,7 @@ import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
 import no.skatteetaten.aurora.mockmvc.extensions.status
 import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
 
-@AutoConfigureEmbeddedDatabase
+@AutoConfigureEmbeddedDatabase(provider = ZONKY)
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
 @AutoConfigureMockMvc
 class ResourceControllerTest {

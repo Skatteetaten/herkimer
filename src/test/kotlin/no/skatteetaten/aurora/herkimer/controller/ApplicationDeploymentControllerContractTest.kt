@@ -1,6 +1,7 @@
 package no.skatteetaten.aurora.herkimer.controller
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.delete
@@ -19,7 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.servlet.MockMvc
 
-@AutoConfigureEmbeddedDatabase
+@AutoConfigureEmbeddedDatabase(provider = ZONKY)
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
 @AutoConfigureMockMvc
 @AutoConfigureRestDocs

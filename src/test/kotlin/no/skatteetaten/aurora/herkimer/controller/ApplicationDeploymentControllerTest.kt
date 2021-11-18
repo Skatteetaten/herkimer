@@ -3,6 +3,7 @@ package no.skatteetaten.aurora.herkimer.controller
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
@@ -21,7 +22,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
 
-@AutoConfigureEmbeddedDatabase
+@AutoConfigureEmbeddedDatabase(provider = ZONKY)
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
 @AutoConfigureMockMvc
 class ApplicationDeploymentControllerTest {

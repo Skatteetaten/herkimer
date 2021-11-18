@@ -21,7 +21,8 @@ class ErrorHandler : ResponseEntityExceptionHandler() {
 
     @ExceptionHandler(RuntimeException::class)
     fun handleGenericErrors(ex: RuntimeException, req: WebRequest): ResponseEntity<*> {
-        return handleException(ex, req,
+        return handleException(
+            ex, req,
             HttpStatus.INTERNAL_SERVER_ERROR
         )
     }
