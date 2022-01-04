@@ -1,7 +1,7 @@
 plugins {
     id("java")
     id("idea")
-    id("no.skatteetaten.gradle.aurora") version "4.3.24"
+    id("no.skatteetaten.gradle.aurora") version "4.4.9"
 }
 
 dependencies {
@@ -16,7 +16,7 @@ dependencies {
     implementation("org.apache.kafka:kafka-clients:2.7.2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("io.mockk:mockk:1.12.0")
+    testImplementation("io.mockk:mockk:1.12.2")
     testImplementation("com.willowtreeapps.assertk:assertk-jvm:0.25")
     testImplementation("no.skatteetaten.aurora:mockmvc-extensions-kotlin:1.1.7")
     testImplementation("io.zonky.test:embedded-database-spring-test:2.1.1")
