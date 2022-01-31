@@ -8,6 +8,7 @@ import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.get
+import no.skatteetaten.aurora.mockmvc.extensions.patch
 import no.skatteetaten.aurora.mockmvc.extensions.post
 import no.skatteetaten.aurora.mockmvc.extensions.put
 import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
@@ -92,6 +93,26 @@ class ApplicationDeploymentControllerTest {
             path = Path("/applicationDeployment/{id}", nonExistingId),
             headers = HttpHeaders().contentTypeJson(),
             body = updatedAd
+        ) {
+            status(HttpStatus.NOT_FOUND)
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.errors[0].errorMessage").contains(nonExistingId)
+        }
+    }
+
+    @Test
+    fun `Migrate ApplicationDeployment When it does not exists Then return 404 with error`() {
+        val nonExistingId = PrincipalUID.randomId().toString()
+        val migratedAd = ApplicationMigrationPayload(
+            environmentName = "dev",
+            cluster = "utv04",
+            businessGroup = "aup"
+        )
+
+        mockMvc.patch(
+            path = Path("/applicationDeployment/{id}", nonExistingId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = migratedAd
         ) {
             status(HttpStatus.NOT_FOUND)
                 .responseJsonPath("$.count").equalsValue(1)

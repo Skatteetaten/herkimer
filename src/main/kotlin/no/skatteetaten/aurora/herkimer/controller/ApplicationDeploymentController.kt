@@ -4,6 +4,7 @@ import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -13,6 +14,12 @@ import org.springframework.web.bind.annotation.RestController
 
 data class ApplicationDeploymentPayload(
     val name: String,
+    val environmentName: String,
+    val cluster: String,
+    val businessGroup: String
+)
+
+data class ApplicationMigrationPayload(
     val environmentName: String,
     val cluster: String,
     val businessGroup: String
@@ -57,6 +64,25 @@ class ApplicationDeploymentController(
             principalService.updateApplicationDeployment(
                 existingAd.copy(
                     name = name,
+                    businessGroup = businessGroup,
+                    cluster = cluster,
+                    environmentName = environmentName
+                )
+            ).toResource()
+                .okResponse()
+        }
+    }
+
+    @PatchMapping("/{id}")
+    fun migrate(
+        @PathVariable id: PrincipalUID,
+        @RequestBody payload: ApplicationMigrationPayload
+    ): AuroraResponse<ApplicationDeployment> {
+        val existingAd = principalService.findApplicationDeployment(id)
+            ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
+        return payload.run {
+            principalService.updateApplicationDeployment(
+                existingAd.copy(
                     businessGroup = businessGroup,
                     cluster = cluster,
                     environmentName = environmentName
