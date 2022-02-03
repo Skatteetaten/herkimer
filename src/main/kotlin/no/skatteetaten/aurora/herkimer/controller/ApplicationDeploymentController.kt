@@ -1,7 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
 import javax.validation.Valid
-import org.springframework.util.StringUtils
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -96,9 +95,9 @@ class ApplicationDeploymentController(
         return payload.run {
             principalService.updateApplicationDeployment(
                 existingAd.copy(
-                    businessGroup = assignPropertyWithFallback(businessGroup, existingAd.businessGroup),
-                    cluster = assignPropertyWithFallback(cluster, existingAd.cluster),
-                    environmentName = assignPropertyWithFallback(environmentName, existingAd.environmentName)
+                    businessGroup = businessGroup ?: existingAd.businessGroup,
+                    cluster = cluster ?: existingAd.cluster,
+                    environmentName = environmentName ?: existingAd.environmentName
                 )
             ).toResource()
                 .okResponse()
@@ -107,11 +106,4 @@ class ApplicationDeploymentController(
 
     @DeleteMapping("/{id}")
     fun delete(@PathVariable id: PrincipalUID) = principalService.deleteApplicationDeployment(id)
-
-    private fun assignPropertyWithFallback(prop: String?, fallback: String): String {
-        if (StringUtils.hasText(prop)) {
-            return prop!!
-        }
-        return fallback
-    }
 }
