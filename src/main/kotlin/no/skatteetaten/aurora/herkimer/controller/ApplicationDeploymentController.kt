@@ -1,5 +1,12 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import javax.validation.Constraint
+import javax.validation.ConstraintValidator
+import javax.validation.ConstraintValidatorContext
+import javax.validation.Payload
+import javax.validation.Valid
+import kotlin.reflect.KClass
+import kotlin.reflect.full.declaredMemberProperties
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -11,6 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import com.fasterxml.jackson.annotation.JsonInclude
 
 data class ApplicationDeploymentPayload(
     val name: String,
@@ -19,10 +27,12 @@ data class ApplicationDeploymentPayload(
     val businessGroup: String
 )
 
+@RequireAtLeastOnePropValue
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class ApplicationMigrationPayload(
-    val environmentName: String,
-    val cluster: String,
-    val businessGroup: String
+    val environmentName: String? = null,
+    val cluster: String? = null,
+    val businessGroup: String? = null
 )
 
 @RestController
@@ -76,16 +86,16 @@ class ApplicationDeploymentController(
     @PatchMapping("/{id}")
     fun migrate(
         @PathVariable id: PrincipalUID,
-        @RequestBody payload: ApplicationMigrationPayload
+        @Valid @RequestBody payload: ApplicationMigrationPayload
     ): AuroraResponse<ApplicationDeployment> {
         val existingAd = principalService.findApplicationDeployment(id)
             ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
         return payload.run {
             principalService.updateApplicationDeployment(
                 existingAd.copy(
-                    businessGroup = businessGroup,
-                    cluster = cluster,
-                    environmentName = environmentName
+                    businessGroup = businessGroup ?: existingAd.businessGroup,
+                    cluster = cluster ?: existingAd.cluster,
+                    environmentName = environmentName ?: existingAd.environmentName
                 )
             ).toResource()
                 .okResponse()
@@ -94,4 +104,36 @@ class ApplicationDeploymentController(
 
     @DeleteMapping("/{id}")
     fun delete(@PathVariable id: PrincipalUID) = principalService.deleteApplicationDeployment(id)
+}
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+@Constraint(validatedBy = [RequireAtLeastOnePropValueValidator::class])
+annotation class RequireAtLeastOnePropValue(
+    val message: String = "at least one property must have a valid value",
+    val groups: Array<KClass<*>> = [],
+    val payload: Array<KClass<out Payload>> = []
+)
+
+// validate that object contains at least one declared property that is non-null and not empty string
+class RequireAtLeastOnePropValueValidator : ConstraintValidator<RequireAtLeastOnePropValue, Any> {
+    override fun isValid(p0: Any?, p1: ConstraintValidatorContext?): Boolean {
+        if (p0 == null) {
+            return false
+        }
+        var valid = false
+
+        p0.javaClass.kotlin.declaredMemberProperties.forEach {
+            val v = it.get(p0)
+            if (v != null) {
+                valid = if (v is String) {
+                    v != "" // if string ensure it is not blank
+                } else {
+                    true // if not string assume non-null value is valid
+                }
+            }
+        }
+
+        return valid
+    }
 }
