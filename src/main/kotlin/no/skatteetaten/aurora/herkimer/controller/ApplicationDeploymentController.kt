@@ -1,12 +1,6 @@
 package no.skatteetaten.aurora.herkimer.controller
 
-import javax.validation.Constraint
-import javax.validation.ConstraintValidator
-import javax.validation.ConstraintValidatorContext
-import javax.validation.Payload
 import javax.validation.Valid
-import kotlin.reflect.KClass
-import kotlin.reflect.full.declaredMemberProperties
 import org.springframework.util.StringUtils
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
@@ -28,13 +22,19 @@ data class ApplicationDeploymentPayload(
     val businessGroup: String
 )
 
-@RequireAtLeastOnePropValue
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class ApplicationMigrationPayload(
     val environmentName: String? = null,
     val cluster: String? = null,
     val businessGroup: String? = null
-)
+) {
+    fun validateAtLeastOneFieldIsSet() {
+        val fieldsThatAreSet = listOfNotNull(environmentName, cluster, businessGroup)
+        if (fieldsThatAreSet.isEmpty()) {
+            throw IllegalArgumentException("Requires at least one field of the payload to be set")
+        }
+    }
+}
 
 @RestController
 @RequestMapping("/applicationDeployment")
@@ -89,6 +89,8 @@ class ApplicationDeploymentController(
         @PathVariable id: PrincipalUID,
         @Valid @RequestBody payload: ApplicationMigrationPayload
     ): AuroraResponse<ApplicationDeployment> {
+        payload.validateAtLeastOneFieldIsSet()
+
         val existingAd = principalService.findApplicationDeployment(id)
             ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
         return payload.run {
@@ -111,37 +113,5 @@ class ApplicationDeploymentController(
             return prop!!
         }
         return fallback
-    }
-}
-
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-@Constraint(validatedBy = [RequireAtLeastOnePropValueValidator::class])
-annotation class RequireAtLeastOnePropValue(
-    val message: String = "at least one property must have a valid value",
-    val groups: Array<KClass<*>> = [],
-    val payload: Array<KClass<out Payload>> = []
-)
-
-// validate that object contains at least one declared property that is non-null and not empty string
-class RequireAtLeastOnePropValueValidator : ConstraintValidator<RequireAtLeastOnePropValue, Any> {
-    override fun isValid(p0: Any?, p1: ConstraintValidatorContext?): Boolean {
-        if (p0 == null) {
-            return false
-        }
-        var valid = false
-
-        p0.javaClass.kotlin.declaredMemberProperties.forEach {
-            val v = it.get(p0)
-            if (v != null) {
-                valid = if (v is String) {
-                    v != "" // if string ensure it is not blank
-                } else {
-                    true // if not string assume non-null value is valid
-                }
-            }
-        }
-
-        return valid
     }
 }

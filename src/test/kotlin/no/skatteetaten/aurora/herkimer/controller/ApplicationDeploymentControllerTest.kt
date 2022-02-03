@@ -22,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
+import no.skatteetaten.aurora.mockmvc.extensions.statusIsOk
 
 @AutoConfigureEmbeddedDatabase(provider = ZONKY)
 @SpringBootTest(properties = ["aurora.authentication.token.value=secret_from_file", "aurora.authentication.enabled=false"])
@@ -117,6 +118,41 @@ class ApplicationDeploymentControllerTest {
             status(HttpStatus.NOT_FOUND)
                 .responseJsonPath("$.count").equalsValue(1)
                 .responseJsonPath("$.errors[0].errorMessage").contains(nonExistingId)
+        }
+    }
+
+    @Test
+    fun `Migrate ApplicationDeployment When payload contains one valid property Then only the provided property is modified`() {
+        val prefix = Math.random().toString()
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId(prefix = prefix)
+
+        val migratedAd = ApplicationMigrationPayload(environmentName = "test-env", cluster = "")
+
+        mockMvc.patch(
+            path = Path("/applicationDeployment/{adId}", adId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = migratedAd
+        ) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.success").isTrue()
+                .responseJsonPath("$.items[0].id").equalsValue(adId)
+                .responseJsonPath("$.items[0].environmentName").equalsValue("test-env")
+                .responseJsonPath("$.items[0].cluster").equalsValue("$prefix-cluster")
+                .responseJsonPath("$.items[0].businessGroup").equalsValue("$prefix-aurora")
+        }
+    }
+
+    @Test
+    fun `Migrate ApplicationDeployment When payload contains null and empty properties Then return HTTP_BAD_REQUEST`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+
+        mockMvc.patch(
+            path = Path("/applicationDeployment/{adId}", adId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = ApplicationMigrationPayload()
+        ) {
+            status(HttpStatus.BAD_REQUEST)
         }
     }
 }
