@@ -142,7 +142,7 @@ class ApplicationDeploymentControllerContractTest {
         val prefix = Math.random().toString()
         val adId = testDataCreators.createApplicationDeploymentAndReturnId(prefix = prefix)
 
-        val migratedAd = ApplicationMigrationPayload(environmentName = "test-env")
+        val migratedAd = ApplicationMigrationPayload(environmentName = "test-env", cluster = "")
 
         mockMvc.patch(
             path = Path("/applicationDeployment/{adId}", adId),
