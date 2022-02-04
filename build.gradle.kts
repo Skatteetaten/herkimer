@@ -6,14 +6,14 @@ plugins {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.flywaydb:flyway-core")
-    implementation("org.postgresql:postgresql")
+    implementation("org.postgresql:postgresql:42.3.2")
     // Nexus IQ violation fixes:
     implementation("ch.qos.logback:logback-core:1.2.7")
     implementation("org.apache.kafka:kafka-clients:2.7.2")
+    implementation("org.apache.tomcat.embed:tomcat-embed-core:9.0.58")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.mockk:mockk:1.12.2")

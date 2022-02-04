@@ -1,15 +1,18 @@
 package no.skatteetaten.aurora.herkimer.controller
 
+import javax.validation.Valid
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.service.PrincipalService
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import com.fasterxml.jackson.annotation.JsonInclude
 
 data class ApplicationDeploymentPayload(
     val name: String,
@@ -17,6 +20,20 @@ data class ApplicationDeploymentPayload(
     val cluster: String,
     val businessGroup: String
 )
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class ApplicationMigrationPayload(
+    val environmentName: String? = null,
+    val cluster: String? = null,
+    val businessGroup: String? = null
+) {
+    fun validateAtLeastOneFieldIsSet() {
+        val fieldsThatAreSet = listOfNotNull(environmentName, cluster, businessGroup)
+        if (fieldsThatAreSet.isEmpty()) {
+            throw IllegalArgumentException("Requires at least one field of the payload to be set")
+        }
+    }
+}
 
 @RestController
 @RequestMapping("/applicationDeployment")
@@ -60,6 +77,27 @@ class ApplicationDeploymentController(
                     businessGroup = businessGroup,
                     cluster = cluster,
                     environmentName = environmentName
+                )
+            ).toResource()
+                .okResponse()
+        }
+    }
+
+    @PatchMapping("/{id}")
+    fun migrate(
+        @PathVariable id: PrincipalUID,
+        @Valid @RequestBody payload: ApplicationMigrationPayload
+    ): AuroraResponse<ApplicationDeployment> {
+        payload.validateAtLeastOneFieldIsSet()
+
+        val existingAd = principalService.findApplicationDeployment(id)
+            ?: throw NoSuchResourceException("Could not find ApplicationDeployment with id=$id")
+        return payload.run {
+            principalService.updateApplicationDeployment(
+                existingAd.copy(
+                    businessGroup = businessGroup ?: existingAd.businessGroup,
+                    cluster = cluster ?: existingAd.cluster,
+                    environmentName = environmentName ?: existingAd.environmentName
                 )
             ).toResource()
                 .okResponse()

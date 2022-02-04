@@ -6,6 +6,7 @@ import no.skatteetaten.aurora.mockmvc.extensions.Path
 import no.skatteetaten.aurora.mockmvc.extensions.contentTypeJson
 import no.skatteetaten.aurora.mockmvc.extensions.delete
 import no.skatteetaten.aurora.mockmvc.extensions.get
+import no.skatteetaten.aurora.mockmvc.extensions.patch
 import no.skatteetaten.aurora.mockmvc.extensions.post
 import no.skatteetaten.aurora.mockmvc.extensions.put
 import no.skatteetaten.aurora.mockmvc.extensions.responseJsonPath
@@ -108,6 +109,29 @@ class ApplicationDeploymentControllerContractTest {
                 .responseJsonPath("$.success").isTrue()
                 .responseJsonPath("$.items[0].id").equalsValue(adId)
                 .responseJsonPath("$.items[0].name").equalsValue("herkimer")
+        }
+    }
+
+    @Test
+    fun `Migrate ApplicationDeployment When it exists Then return HTTP_OK and updated resource`() {
+        val adId = testDataCreators.createApplicationDeploymentAndReturnId()
+
+        val migratedAd = ApplicationMigrationPayload(
+            environmentName = "dev",
+            cluster = "utv04",
+            businessGroup = "aup"
+        )
+
+        mockMvc.patch(
+            path = Path("/applicationDeployment/{adId}", adId),
+            headers = HttpHeaders().contentTypeJson(),
+            body = migratedAd
+        ) {
+            statusIsOk()
+                .responseJsonPath("$.count").equalsValue(1)
+                .responseJsonPath("$.success").isTrue()
+                .responseJsonPath("$.items[0].id").equalsValue(adId)
+                .responseJsonPath("$.items[0].cluster").equalsValue("utv04")
         }
     }
 }

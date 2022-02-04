@@ -33,6 +33,8 @@ spring:
         username: ${DATABASE_USER:postgres}
         password: ${DATABASE_PASSWORD:postgres}
         driver-class-name: org.postgresql.Driver
+    flyway:
+        locations: classpath:db/migration,classpath:db/sample-data
 
 aurora:
     authentication:
