@@ -27,7 +27,6 @@ aurora:
 
 ---
 spring:
-    profiles: local
     datasource:
         url: jdbc:postgresql://localhost:${DATABASE_PORT:5432}/herkimer
         username: ${DATABASE_USER:postgres}
@@ -35,6 +34,9 @@ spring:
         driver-class-name: org.postgresql.Driver
     flyway:
         locations: classpath:db/migration,classpath:db/sample-data
+    config:
+        activate:
+            on-profile: local
 
 aurora:
     authentication:

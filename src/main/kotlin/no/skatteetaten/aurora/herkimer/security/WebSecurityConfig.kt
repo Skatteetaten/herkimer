@@ -11,7 +11,6 @@ import org.springframework.security.core.userdetails.User
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken
 import org.springframework.security.web.authentication.preauth.RequestHeaderAuthenticationFilter
-import org.springframework.security.web.util.matcher.RequestMatcher
 
 @EnableWebSecurity
 @Configuration

@@ -3,6 +3,7 @@ package no.skatteetaten.aurora.herkimer.service
 import java.time.LocalDateTime
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import no.skatteetaten.aurora.herkimer.dao.PrincipalUID
 import no.skatteetaten.aurora.herkimer.dao.ResourceClaimEntity
@@ -23,7 +24,8 @@ data class ByClaimedBy(
 @Component
 class ResourceService(
     private val resourceRepository: ResourceRepository,
-    private val resourceClaimRepository: ResourceClaimRepository
+    private val resourceClaimRepository: ResourceClaimRepository,
+    private val objectMapper: ObjectMapper
 ) {
     fun createResource(name: String, kind: ResourceKind, ownerId: PrincipalUID, parentId: Int?): ResourceDto =
         runCatching {
@@ -145,7 +147,7 @@ class ResourceService(
             resourceClaimRepository.findByProperties(
                 ownerId = ownerId,
                 resourceId = resourceId,
-                credentials = credentials,
+                credentials = objectMapper.writeValueAsString(credentials),
                 name = name
             )
         }.toDto()

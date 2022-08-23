@@ -34,12 +34,14 @@ data class ResourceClaimEntity(
 interface ResourceClaimRepository : CrudRepository<ResourceClaimEntity, Int> {
     @Query(
         "SELECT id, owner_id, credentials, resource_id, name, created_date, modified_date, created_by, modified_by " +
-            "FROM resource_claim WHERE owner_id=:ownerId AND resource_id=:resourceId AND credentials=:credentials and name=:name"
+            "FROM resource_claim WHERE owner_id= :ownerId AND resource_id= :resourceId AND credentials= :credentials and name= :name"
     )
     fun findByProperties(
         ownerId: PrincipalUID,
         resourceId: Int,
-        credentials: ObjectNode,
+
+        // Spring Data JDBC is not able to use ObjectNode here, although we have a custom converter
+        credentials: String,
         name: String
     ): ResourceClaimEntity
 }

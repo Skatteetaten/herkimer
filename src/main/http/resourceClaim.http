@@ -2,7 +2,8 @@ POST http://localhost:8080/resource/2/claims
 Content-Type: application/json
 
 {
-  "ownerId": "7161d71b51",
+  "ownerId": "56bc4386a7",
+"name": "ADMIN",
   "credentials" : {
     "brukernavn": "bruker2",
     "passord": "pass123"

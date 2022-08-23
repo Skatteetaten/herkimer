@@ -14,7 +14,7 @@ GET http://localhost:8080/resource?claimedBy=af4faf2d6f&active=true
 GET http://localhost:8080/resource?claimedBy=61b0b28956&name=objectPrefixAurora-1
 
 ###
-DELETE http://localhost:8080/resource/89
+GET http://localhost:8080/resource/2?includeClaims=true
 
 ###
 PATCH http://localhost:8080/resource/89

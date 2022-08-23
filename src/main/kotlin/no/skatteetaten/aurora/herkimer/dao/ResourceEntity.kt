@@ -34,7 +34,15 @@ data class ResourceEntity(
 )
 
 enum class ResourceKind {
-    MinioPolicy, MinioObjectArea, ManagedPostgresDatabase, ManagedOracleSchema, ExternalSchema, PostgresDatabaseInstance, OracleDatabaseInstance, StorageGridTenant, StorageGridObjectArea
+    MinioPolicy,
+    MinioObjectArea,
+    ManagedPostgresDatabase,
+    ManagedOracleSchema,
+    ExternalSchema,
+    PostgresDatabaseInstance,
+    OracleDatabaseInstance,
+    StorageGridTenant,
+    StorageGridObjectArea
 }
 
 @Repository
